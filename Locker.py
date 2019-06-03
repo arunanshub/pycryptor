@@ -1,3 +1,8 @@
+from Cryptodome.Cipher import AES # Cryptodome has been used to prevent any
+from Cryptodome import Random     # collision with Pycrypto/Pycryptodome packages
+import hashlib
+import os
+
 def writer(filepath, method, append_iv=None):
   
   """
