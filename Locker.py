@@ -1,6 +1,6 @@
-from Cryptodome.Cipher import AES     # Cryptodome has been used to prevent any
-from Cryptodome import Random         # collision with Pycrypto/Pycryptodome packages
-import hashlib
+from Cryptodome.Cipher import AES     # Pyryptodomex has been used to prevent any
+from Cryptodome import Random         # collision with Pycrypto/Pycryptodome packages.
+import hashlib                        # Use pip (or conda) install cryptodomex.
 import os
 
 def writer(filepath, method, append_iv=None):
