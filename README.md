@@ -1,2 +1,2 @@
 # cryptor-ware
-A short, sweet, PoC Ransomware using advanced Encryption.
+A short, sweet, PoC Python Ransomware using advanced Encryption.
