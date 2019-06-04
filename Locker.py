@@ -35,6 +35,10 @@ def encrypt(filepath, key):
   And as a final touch, it adds a sweet '.0day' extension
   at the end of the file. And also it randomly generates false keys
   to prevent extraction of original keys.
+  
+  Note: Encrypt may perform slow on large files, but decryption spped
+        is not affected (which is very suspicious). The decrypted files
+        are returned in perfect state.
   """
   
   path = os.path.normpath(filepath)
