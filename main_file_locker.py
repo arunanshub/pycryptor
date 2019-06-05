@@ -13,10 +13,10 @@ def main_locker(*files, method, key):
   correct.
   
   The passphrase must be very strong and must be of length of at least
-  8 charecters.
+  8 charecters. Or else, the program is going to shoot error message a you!
   """
   
-  class LengthError(Exception):
+  class PasswordLengthError(Exception):
     pass
   
   if len(key) < 8:
