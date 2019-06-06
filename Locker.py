@@ -1,7 +1,7 @@
 from Cryptodome.Cipher import AES     # Pyryptodomex has been used to prevent any
 from Cryptodome import Random         # collision with Pycrypto/Pycryptodome packages.
 import hashlib                        # Use pip (or conda) install cryptodomex.
-import os
+import os, sys, stat
 
 def writer(filepath, method, append_iv=None):
   
@@ -14,6 +14,7 @@ def writer(filepath, method, append_iv=None):
   """
   
   path = os.path.normpath(filepath)
+  os.chmod(path, stat.S_IRWXU)
   with open(path, 'rb+') as fh:
     for line in fh:
       new_line = method(line)
