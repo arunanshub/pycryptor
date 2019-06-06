@@ -11,6 +11,8 @@ def writer(filepath, method, append_iv=None):
   If *append_iv* is given, the Initialization Vector
   will be appended to the end of the file. And also it randomly 
   generates false keys to prevent extraction of original keys.
+  Also, to enable read-write under the hood, the permissions are 
+  modified using `os.chmod(...)` ;)
   """
   
   path = os.path.normpath(filepath)
