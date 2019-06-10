@@ -27,7 +27,6 @@ def writer(filepath, method, append_iv=None):
       fh.seek(0,2)
       fh.write(append_iv)
 
-
 def encrypt(filepath, key):
   
   """
@@ -64,7 +63,6 @@ def encrypt(filepath, key):
   except FileNotFoundError:
     pass
   
-
 def decrypt(filepath, key):
   """
   This function will decrypt the contents of file,
