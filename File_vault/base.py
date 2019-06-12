@@ -27,3 +27,6 @@ def separator(*files):
     else:
       pass
   return dir_set, file_set
+
+# todo: create the interface handles
+# todo: create interface.py
