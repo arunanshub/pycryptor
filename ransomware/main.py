@@ -11,8 +11,8 @@ def main():
   HARDCODED_KEY = "no please, don't see this"
   
   ###########################################################################
-    Uncomment this line of code below if you want to destroy the computer
-    but please don't blame me, as I warned you before... :)
+  ##  Uncomment this line of code below if you want to destroy the computer
+  ##  but please don't blame me, as I warned you before... :)
   
   ## HARDCODED_KEY = base64.b64encode(os.urandom(32)).decode()
   ###########################################################################
