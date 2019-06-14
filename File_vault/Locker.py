@@ -59,7 +59,7 @@ def encrypt(filepath, key):
     
     os.rename(path, path+ext)
     
-    for _ in range(100): keyb = os.urandom(16)
+    #for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
     pass
   
@@ -96,6 +96,6 @@ def decrypt(filepath, key):
     
     os.rename(path, original_path)
     
-    for _ in range(100): keyb = os.urandom(16)
+    #for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
     pass
