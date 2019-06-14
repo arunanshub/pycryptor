@@ -4,7 +4,7 @@ from Cryptodome import Random         # collision with Pycrypto/Pycryptodome pac
 import hashlib                        # Use pip (or conda) install cryptodomex.
 
 
-def writer(filepath, method, append_iv=None):
+def _writer(filepath, method, append_iv=None):
   
   """
   This function will take the filepath and write
@@ -55,7 +55,7 @@ def encrypt(filepath, key):
     iv = Random.new().read(AES.block_size)
     cipher_gcm = AES.new(keyb, AES.MODE_GCM, iv)
     
-    writer(path, cipher_gcm.encrypt, append_iv=iv)
+    _writer(path, cipher_gcm.encrypt, append_iv=iv)
     
     os.rename(path, path+ext)
     
@@ -90,7 +90,7 @@ def decrypt(filepath, key):
     keyb = hashlib.sha3_256(key.encode()).digest()
     cipher_gcm = AES.new(keyb, AES.MODE_GCM, iv)
     
-    writer(path, cipher_gcm.decrypt)
+    _writer(path, cipher_gcm.decrypt)
     
     original_path = os.path.splitext(path)[0]
     
