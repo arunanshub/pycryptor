@@ -21,7 +21,6 @@ def _writer(filepath, method, append_iv=None):
   path = os.path.normpath(filepath)
   os.chmod(path, stat.S_IRWXU)
   with open(path, 'rb+') as fh:
-    line = fh.read()
 
     for line in fh:
       new_line = method(line)
