@@ -55,8 +55,8 @@ def encrypt(filepath, key):
   
   try:
     keyb = hashlib.sha3_256(key.encode()).digest()
-    iv = Random.new().read(AES.block_size)
-    cipher_gcm = AES.new(keyb, AES.MODE_GCM, iv)
+    iv = Random.new().read(12)
+    cipher_gcm = AES.new(keyb, AES.MODE_GCM, nonce=iv)
     
     _writer(path, cipher_gcm.encrypt, append_iv=iv)
     
@@ -84,13 +84,13 @@ def decrypt(filepath, key):
   
   try:
     with open(path, 'rb+') as f:
-      original_size = os.path.getsize(path) - 16
-      f.seek(-16, 2)
-      iv = f.read(16)
+      original_size = os.path.getsize(path) - 12
+      f.seek(-12, 2)
+      iv = f.read()
       f.truncate(original_size)
     
     keyb = hashlib.sha3_256(key.encode()).digest()
-    cipher_gcm = AES.new(keyb, AES.MODE_GCM, iv)
+    cipher_gcm = AES.new(keyb, AES.MODE_GCM, nonce=iv)
     
     _writer(path, cipher_gcm.decrypt)
     
