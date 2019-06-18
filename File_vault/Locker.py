@@ -1,6 +1,12 @@
+import os, sys, stat
+from Cryptodome.Cipher import AES     # Pycryptodomex has been used to prevent any
+from Cryptodome import Random         # collision with Pycrypto/Pycryptodome packages.
+import hashlib                        # Use pip (or conda) install cryptodomex.
+
 BLOCKSIZE = 128
 NONCE_SIZE = 12
 EXT = '.0DAY'
+
 
 def _writer(filepath, method, flag, add_iv=None):
   """
@@ -87,4 +93,3 @@ def locker(filepath, key):
   
   except FileNotFoundError:
     pass
-    
