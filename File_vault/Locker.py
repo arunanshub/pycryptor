@@ -1,4 +1,4 @@
-#locker v2
+#locker v3
 import hashlib
 import os, stat
 
@@ -12,6 +12,8 @@ MACLEN = 16
 BLOCKSIZE = 64*1024
 EXT = '.0DAY'
 
+class DataDecryptionError(ValueError):
+    pass
 
 def _writer(filepath, newfile, method, flag, **kargs):
   """
@@ -144,9 +146,10 @@ def locker(filepath, password, remove=True):
       newfile = os.path.splitext(filepath)[0]
       os.remove(newfile)
 
-      return 'Password is incorrect'
+      raise DataDecryptionError('Either Password is incorrect or Encrypted Data has been tampered.')
 
   except FileNotFoundError:   
     pass
   except IsADirectoryError:
     pass
+        
