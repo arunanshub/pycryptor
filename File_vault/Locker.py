@@ -123,7 +123,6 @@ def locker(filepath, password, remove=True):
             nonce = os.urandom(12)
             newfile = filepath + EXT
 
-      
         try:
             key = hashlib.sha3_256(password.encode()).digest()
         except AttributeError:
@@ -174,13 +173,11 @@ def locker(filepath, password, remove=True):
                 raise DataDecryptionError("Either Password is incorrect or "
                                   "Encrypted Data has been tampered.")
                 
-
       # If remove set to True, delete the file
       # that is being worked upon.
 
         if remove:
             os.remove(filepath)
-
 
     except FileNotFoundError:
 
