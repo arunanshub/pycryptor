@@ -123,9 +123,6 @@ def locker(filepath, password, remove=True):
             nonce = os.urandom(12)
             newfile = filepath + EXT
 
-      # A cipher object will take care of the all
-      # the required mactag and verification.
-
         try:
             key = hashlib.sha3_256(password.encode()).digest()
         except AttributeError:
@@ -134,6 +131,10 @@ def locker(filepath, password, remove=True):
 
             key = hashlib.sha3_256(password).digest()
 
+        
+      # A cipher object will take care of the all
+      # the required mactag and verification.    
+        
         cipher_obj = AES.new(key, AES.MODE_GCM, nonce)
 
         crp = getattr(cipher_obj, method)
