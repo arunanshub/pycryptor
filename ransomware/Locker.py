@@ -1,96 +1,190 @@
-import os, sys, stat
-from Cryptodome.Cipher import AES     # Pycryptodomex has been used to prevent any
-from Cryptodome import Random         # collision with Pycrypto/Pycryptodome packages.
-import hashlib                        # Use pip (or conda) install cryptodomex.
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# locker v3
 
+import hashlib
+import os
+import stat
 
-BLOCKSIZE = 128
-NONCE_SIZE = 12
+from struct import pack, unpack, calcsize
+from Cryptodome.Cipher import AES
+
+NONCESIZE = 12
+MACLEN = 16
+BLOCKSIZE = 64 * 1024
 EXT = '.0DAY'
 
-def _writer(filepath, method, flag, add_iv=None):
-  """
-  This function takes care of writing to the file - *filepath*
-  with the provided method by looping through each line of the 
-  file of fixed length, specified by BLOCK_SIZE in global namespace.
+
+class DataDecryptionError(ValueError):
+
+    pass
+
+
+def _writer(filepath, newfile, method, flag, **kargs):
+    """
+  This function takes care of readingfrom the file - *filepath*
+  and writing to the new file *newfile* with the provided method by
+  looping through each line of the filepath of fixed length, specified by
+  BLOCK_SIZE in global namespace.
   
     Usage
    -------
   filepath = File to be written on.
   
+   newfile = Name of the encrypted/decrypted file to written upon.
+  
     method = The way in which the file must be overwritten.
              (encrypt or decrypt)
   
       flag = This is to identify if the method being used is
-             for encryption or decryption.
-  
-    add_iv = The *nonce* or *Initialization vector* to be written
-             to the file. More preferably *nonce*
+             for encryption or decryption. 
+             
+             If the *flag* is *True* then the *nonce* value 
+             and a *mac* tag function are accepted.
   """
-  
-  os.chmod(filepath, stat.S_IRWXU)
-  with open(filepath, 'rb+') as f:
-    part = f.read(BLOCKSIZE)
-    while part:
-      new_line = method(part)
-      f.seek(-len(part), 1)
-      f.write(new_line)
-      
-      part = f.read(BLOCKSIZE)
-    
-    # identify if the file is being encrypted
-    if flag and add_iv:
-      f.write(add_iv)
 
-def locker(filepath, key):
-  """
+    if kargs:
+        nonce = kargs['nonce']
+        macfunc = kargs['mac']
+
+    os.chmod(filepath, stat.S_IRWXU)
+    with open(filepath, 'rb') as infile:
+        with open(newfile, 'wb+') as outfile:
+            while True:
+                part = infile.read(BLOCKSIZE)
+                if not part:
+                    break
+                new = method(part)
+                outfile.write(new)
+
+          # If the file is being encrypted, write the
+          # *mac* tag and *nonce* value to the *newfile*
+
+            if flag:
+                mac = macfunc()
+                form = '<{}s{}s'.format(NONCESIZE, MACLEN)
+                nonce_mac = pack(form, nonce, mac)
+                outfile.write(nonce_mac)
+
+
+def locker(filepath, password, remove=True):
+    """
   This function either encrypts or decrypts the file - *filepath*.
   Encryption or decryption depends upon the file's extension.
+  The user's encryption or decryption task is almost automated since
+  *encryption* or *decryption* is determined by the file's extension.
+  
+  Added:
+      After the *filepath* decryption, decrypted file's verification
+      is done. If it fails, either the Password is incorrect or the
+      encrypted data was supposedly tampered with.
   
     Usage
    -------
    filepath = File to be written on.
         
-        key = Key to be used for encryption/decryption
+   password = Key to be used for encryption/decryption.
+              - Raises DataDecryptionError if *Password* is incorrect
+                or Encrypted data has been tampered with.
+   
+     remove = If set to True, the the file that is being
+              encrypted or decrypted will be removed.
+              (Default: True).
   """
-  
-  try:  
-    keyb = hashlib.sha3_256(key.encode()).digest()
-    
-    # Check if file ends with the required extension.
-    # If it does decrypt the file with the given key.
-    if filepath.endswith(EXT):
-      method = 'decrypt'
-      flag = False
-      with open(filepath, 'rb+') as f:
-        f.seek(-NONCE_SIZE,2)
-        iv = f.read()
-      os.truncate(filepath, os.path.getsize(filepath) - NONCE_SIZE)
-    
-    # If the file doesn't end with the required extension,
-    # then identify the method as `encrypt` and do the same
-    # with the key provided.
-    else:
-      method = 'encrypt'
-      flag = True
-      iv = Random.new().read(NONCE_SIZE)
-    
-    # Make a cipher object with the nonce and key and write
-    # to the file with the arguments.
-    crp = getattr(AES.new(keyb, AES.MODE_GCM, nonce=iv), method)
-    _writer(filepath, crp, flag, iv)
-    
-    # If the file is being encrypted, add an extension EXT to
-    # the end of the file.
-    if flag:
-      os.rename(filepath, filepath+EXT)
-    
-    # If the file is being decrypted, get the original extension
-    # and remove the extension EXT.
-    else:
-      origpath = os.path.splitext(filepath)[0]
-      os.rename(filepath, origpath)
-  
-  except FileNotFoundError:
-    pass
-    
+
+    try:
+
+      # The file is being decrypted
+
+        if filepath.endswith(EXT):
+            method = 'decrypt'
+            flag = False
+
+            format_ = '<{}s{}s'.format(NONCESIZE, MACLEN)
+            format_size = calcsize(format_)
+
+          # Read the nonce and mac values
+
+            with open(filepath, 'rb+') as f:
+                f.seek(-format_size, 2)
+                (nonce, mac) = unpack(format_, f.read())
+
+          # Remove the mac and nonce from the encrypted file
+
+            orig_file_size = os.path.getsize(filepath) - format_size
+            os.truncate(filepath, orig_file_size)
+            newfile = os.path.splitext(filepath)[0]
+        else:
+
+          # The file is being encrypted.
+
+            method = 'encrypt'
+            flag = True
+            nonce = os.urandom(12)
+            newfile = filepath + EXT
+
+      
+        try:
+            key = hashlib.sha3_256(password.encode()).digest()
+        except AttributeError:
+
+          # password given by the user is in binary format
+
+            key = hashlib.sha3_256(password).digest()
+
+        # A cipher object will take care of the all
+        # the required mactag and verification.
+
+        cipher_obj = AES.new(key, AES.MODE_GCM, nonce)
+
+        crp = getattr(cipher_obj, method)
+        macfunc = getattr(cipher_obj, 'digest')
+        verifier = getattr(cipher_obj, 'verify')
+
+      # read from the *filepath* and,
+      # write to the *newfile* using _writer defined above.
+
+        _writer(
+            filepath,
+            newfile,
+            crp,
+            flag,
+            nonce=nonce,
+            mac=macfunc,
+            )
+
+      # Verify the file for integrity if the
+      # current file is being decrypted.
+
+        if not flag:
+            try:
+                verifier(mac)
+
+            except ValueError:
+                with open(filepath, 'rb+') as f:
+                    f.seek(0, 2)
+                    f.write(pack(format_, nonce, mac))
+
+              # Remove the incorrectly decrypted file
+              # and raise DataDecryptionError.
+
+                newfile = os.path.splitext(filepath)[0]
+                os.remove(newfile)
+
+                raise DataDecryptionError("Either Password is incorrect or "
+                                  "Encrypted Data has been tampered.")
+                
+
+      # If remove set to True, delete the file
+      # that is being worked upon.
+
+        if remove:
+            os.remove(filepath)
+
+
+    except FileNotFoundError:
+
+        pass
+    except IsADirectoryError:
+
+        pass
