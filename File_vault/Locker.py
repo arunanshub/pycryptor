@@ -147,7 +147,7 @@ def locker(filepath, password, remove=True):
             # condition, i.e., Add the *nonce* and *mac* back to
             # the encrypted file.
             with open(filepath, 'rb+') as f:
-                f.seek(0,2)
+                f.seek(0, 2)
                 f.write(pack(format_, nonce, mac))
 
             # Remove the incorrectly decrypted file 
