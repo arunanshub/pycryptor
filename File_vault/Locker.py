@@ -116,13 +116,14 @@ def locker(filepath, password, remove=True):
             newfile = os.path.splitext(filepath)[0]
         else:
 
-      # The file is being encrypted.
+          # The file is being encrypted.
 
             method = 'encrypt'
             flag = True
             nonce = os.urandom(12)
             newfile = filepath + EXT
 
+      
         try:
             key = hashlib.sha3_256(password.encode()).digest()
         except AttributeError:
@@ -131,10 +132,9 @@ def locker(filepath, password, remove=True):
 
             key = hashlib.sha3_256(password).digest()
 
-        
-      # A cipher object will take care of the all
-      # the required mactag and verification.    
-        
+        # A cipher object will take care of the all
+        # the required mactag and verification.
+
         cipher_obj = AES.new(key, AES.MODE_GCM, nonce)
 
         crp = getattr(cipher_obj, method)
@@ -142,7 +142,7 @@ def locker(filepath, password, remove=True):
         verifier = getattr(cipher_obj, 'verify')
 
       # read from the *filepath* and,
-      # write to the *newfile*
+      # write to the *newfile* using _writer defined above.
 
         _writer(
             filepath,
@@ -153,36 +153,35 @@ def locker(filepath, password, remove=True):
             mac=macfunc,
             )
 
-      # If remove set to True, delete the file
-      # that is being worked upon.
-
-        if remove:
-            os.remove(filepath)
-
       # Verify the file for integrity if the
       # current file is being decrypted.
 
         if not flag:
             try:
                 verifier(mac)
+
             except ValueError:
-
-            # If decryption fails, revert back to the original
-            # condition, i.e., Add the *nonce* and *mac* back to
-            # the encrypted file.
-
                 with open(filepath, 'rb+') as f:
                     f.seek(0, 2)
                     f.write(pack(format_, nonce, mac))
 
-            # Remove the incorrectly decrypted file
-            # and raise DataDecryptionError.
+              # Remove the incorrectly decrypted file
+              # and raise DataDecryptionError.
 
                 newfile = os.path.splitext(filepath)[0]
                 os.remove(newfile)
 
-                raise DataDecryptionError("""Either Password is incorrect or
-                                             Encrypted Data has been tampered.""")
+                raise DataDecryptionError("Either Password is incorrect or "
+                                  "Encrypted Data has been tampered.")
+                
+
+      # If remove set to True, delete the file
+      # that is being worked upon.
+
+        if remove:
+            os.remove(filepath)
+
+
     except FileNotFoundError:
 
         pass
