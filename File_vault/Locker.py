@@ -12,10 +12,10 @@ from Cryptodome.Cipher import AES
 NONCESIZE = 12
 MACLEN = 16
 BLOCKSIZE = 64 * 1024
-EXT = '.0DAY'
+EXT = '.TXT'
 
 
-class DataDecryptionError(ValueError):
+class DecryptionError(ValueError):
 
     pass
 
@@ -115,9 +115,8 @@ def locker(filepath, password, remove=True):
             os.truncate(filepath, orig_file_size)
             newfile = os.path.splitext(filepath)[0]
         else:
-
+            
           # The file is being encrypted.
-
             method = 'encrypt'
             flag = True
             nonce = os.urandom(12)
@@ -126,9 +125,6 @@ def locker(filepath, password, remove=True):
         try:
             key = hashlib.sha3_256(password.encode()).digest()
         except AttributeError:
-
-          # password given by the user is in binary format
-
             key = hashlib.sha3_256(password).digest()
 
         # A cipher object will take care of the all
@@ -152,6 +148,19 @@ def locker(filepath, password, remove=True):
             mac=macfunc,
             )
 
+      
+      # If remove is set to false, keep the original file,
+      # and if the file is being decrypted, add the *nonce* and
+      # *mac* to the encrypted (original) file.
+        
+        if not remove:
+          if not flag:
+            with open(filepath, 'rb+') as f:
+              f.seek(0, 2)
+              f.write(pack(format_, nonce, mac))
+        
+        
+        
       # Verify the file for integrity if the
       # current file is being decrypted.
 
@@ -170,18 +179,18 @@ def locker(filepath, password, remove=True):
                 newfile = os.path.splitext(filepath)[0]
                 os.remove(newfile)
 
-                raise DataDecryptionError("Either Password is incorrect or "
+                raise DecryptionError("Either Password is incorrect or "
                                   "Encrypted Data has been tampered.")
                 
       # If remove set to True, delete the file
       # that is being worked upon.
-
+        
         if remove:
-            os.remove(filepath)
+          os.remove(filepath)
 
+    
     except FileNotFoundError:
-
-        pass
+      pass
+    
     except IsADirectoryError:
-
-        pass
+      pass
