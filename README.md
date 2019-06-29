@@ -30,8 +30,8 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
    
      | File Size | Encryption Speed (in secs.) | Decryption Speed (in secs.) |
      |:---------:|:---------------------------:|:---------------------------:|
-     |    85MB   |          0.22027444         |          0.21719551         |
-     |   858MB   |          4.85450267         |          4.89669537         |
+     |    85MB   |          0.220274           |          0.217195           |
+     |   858MB   |          5.068394           |          4.854502           |
 
 ## Objections: 
   - **The Ransomware is meant only for educational purposes and IS NOT MEANT FOR ANY MALICIOUS PURPOSES.**
