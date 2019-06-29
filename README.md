@@ -25,6 +25,13 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
   P.S: The encryption and decryption speed may increase if this file is used. 
        I experimented with the same in Google Colab (as all the other files were done), 
        where I got very fine speeds. But it may vary from system to system.
+   
+  + ***Encryption/Decryption speeds for this Locker.py***
+   
+     | File Size | Encryption Speed (in secs.) | Decryption Speed (in secs.) |
+     |:---------:|:---------------------------:|:---------------------------:|
+     |    85MB   |          0.22027444         |          0.21719551         |
+     |   858MB   |          4.85450267         |          4.89669537         |
 
 ## Objections: 
   - **The Ransomware is meant only for educational purposes and IS NOT MEANT FOR ANY MALICIOUS PURPOSES.**
