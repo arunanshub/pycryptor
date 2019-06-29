@@ -49,10 +49,6 @@ def _writer(filepath, newfile, method, flag, **kargs):
         nonce = kargs['nonce']
         mac_func = kargs['mac_function']
         mac_val = kargs['mac_value']
-
-    if os.path.exists(newfile):
-        os.chmod(newfile, stat.S_IRWXU)
-        os.remove(newfile)
         
     os.chmod(filepath, stat.S_IRWXU)
     with open(filepath, 'rb+') as infile:
