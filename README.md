@@ -8,13 +8,23 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
 ## Features:
   - Uses AES-GCM-256 for encryption and decryption.
   - File is verified after decryption.
-  - **Encryption and decryption speeds are quite fast.**
+  - ***Encryption and decryption speeds are quite fast.***
       
       | File size   | Encryption Speed (in secs.)   |  Decryption Speed (in secs.)  |
       |:-----------:|:-----------------------------:|:-----------------------------:|
       |    84MB     |           0.321843            |           0.313680            |
       |   835MB     |           5.022431            |           4.948784            |
     
+
+## Additional note:
+  - A seperate folder named as **``cryptography_locker``** contains the same Locker file,
+    but this one uses cryptography module instead. You can replace the **original
+    ``Locker.py``** with this ``Locker.py`` instead, it won't harm the functionality of the
+    program.
+    
+  P.S: The encryption and decryption speed may increase if this file is used. 
+       I experimented with the same in Google Colab (as all the other files were done), 
+       where I got very fine speeds. But it may vary from system to system.
 
 ## Objections: 
   - **The Ransomware is meant only for educational purposes and IS NOT MEANT FOR ANY MALICIOUS PURPOSES.**
