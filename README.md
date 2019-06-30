@@ -5,6 +5,9 @@ There are two flavors of the program, one is a simple *```File Encryptor```* and
 
 Atleast, for now, the encryptor and decryptor functions doesn't use the ```threading/multiprocessing/asyncio``` modules' benifits. But work is under progress, so it is *hoped that all will be great under the hood...*
 
+---
+> __Work for the `File vault` and `Ransomware` is still under progress__
+
 ## Features:
   - Uses AES-GCM-256 for encryption and decryption.
   - File is verified after decryption.
