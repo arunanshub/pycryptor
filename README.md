@@ -32,7 +32,29 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
      |:---------:|:---------------------------:|:---------------------------:|
      |    85MB   |          0.220274           |          0.217195           |
      |   858MB   |          5.068394           |          4.854502           |
+     
+   
+ ## Warning notes (Read this first before using the Locker(s)):
+   
+   + **Please note that the file encrypted with pycryptodome/Locker.py won't be decrypted by this 
+       cryptography/Locker.py and vice versa. This is due to the way pycryptodome and cryptography module works.**
+   
+   +   Encrypt (or decrypt) the files with appropriate ```Locker.py``` *only*. If you fail to do 
+       do so, unforseeable problems may destroy your program logic
+          
+   + And as a final word of caution: 
+     Cryptography is a very powerful yet sensitive thing. If used properly, you get good
+     results, but if you fail to do so, remember: 
+     
+     (Quoted directly from `cryptography/hazmat/__init__.py`)
+      
+      "**You should ONLY use it if you're
+      100% absolutely sure that you know what you're doing because this program
+      is full of land mines, dragons, and dinosaurs with laser guns.**"
+       
+       
+  
 
 ## Objections: 
-  - **The Ransomware is meant only for educational purposes and IS NOT MEANT FOR ANY MALICIOUS PURPOSES.**
+  - **The Ransomware provided is meant only for educational purposes and IS NOT MEANT FOR ANY MALICIOUS PURPOSES.**
     **I will not be responsible for any sort of damage caused to anyone's property.**
