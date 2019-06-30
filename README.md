@@ -34,7 +34,7 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
      |   858MB   |          5.068394           |          4.854502           |
      
    
- ## Warning notes (Read this first before using the Locker(s)):
+ ### Warning note for both the lockers (Read this first before using the Locker(s)):
    
    + **Please note that the file encrypted with pycryptodome/Locker.py won't be decrypted by this 
        cryptography/Locker.py and vice versa. This is due to the way pycryptodome and cryptography module works.**
