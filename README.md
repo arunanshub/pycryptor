@@ -51,7 +51,7 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
    Cryptography is a very powerful yet sensitive thing. If used properly, you get good
    results, but if you fail to do so, remember: 
    
-  #### (Quoted directly from `cryptography/hazmat/__init__.py`)
+  ### (Quoted directly from `cryptography/hazmat/__init__.py`)
 > "**You should ONLY use it if you're 100% absolutely sure that you know what you're doing 
   because this program is full of land mines, dragons, and dinosaurs with laser guns.**"
 
