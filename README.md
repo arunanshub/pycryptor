@@ -7,6 +7,8 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
 
 ---
 > __Work for the `File vault` and `Ransomware` is still under progress__
+   __but the `Locker` module provides highly secure encryption__
+   __and decryption of files.__
 
 ## Features:
   - Uses AES-GCM-256 for encryption and decryption.
