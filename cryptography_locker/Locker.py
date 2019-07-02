@@ -39,7 +39,7 @@ NONCE_SIZE = 12
 MAC_LEN = 16
 BLOCK_SIZE = 64 * 1024
 
-EXT = '.0DAY'
+EXT = '.TXT'
 
 
 def _writer(file_path, new_file, method, flag, **kwargs):
@@ -78,25 +78,21 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb+') as infile:
         with open(new_file, 'wb+') as outfile:
-
-            while True:
-                part = infile.read(BLOCK_SIZE)
-                if not part:
-                    break
-
-                try:
-                    outfile.write(method(data=part))
-
-                # This is raised when the file is being decrypted.
-
-                except InvalidTag as err:
-                    # Write the nonce back into the encrypted file,
-                    # and raise Error
-
-                    infile.seek(0, 2)
-                    infile.write(nonce)
-                    raise err
-
+            # Loop through the *infile*, generate encrypted data
+            # and write it t *outfile*.
+            try:
+                while True:
+                    part = infile.read(BLOCK_SIZE)
+                    if not part:
+                        break
+                    new_data = method(data=part)
+                    outfile.write(new_data)
+            
+            except InvalidTag as err:
+                infile.seek(0, 2)
+                infile.write(nonce)
+                raise err
+            
             # Write the nonce into the *new_file* for future use.
 
             if flag:
