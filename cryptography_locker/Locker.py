@@ -27,13 +27,13 @@
 # =============================================================================
 
 
-import os, stat
+import os
+import stat
 import hashlib
 
 from functools import partial
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
-
 
 NONCE_SIZE = 12
 MAC_LEN = 16
@@ -42,137 +42,140 @@ BLOCK_SIZE = 64 * 1024
 EXT = '.0DAY'
 
 
-def _writer(filepath, newfile, method, flag, **kargs):
-  """Facilates reading/writing to file.
-  This function facilates reading from *filepath* and writing to
-  *newfile* with the provided method by looping through each line 
-  of the filepath of fixed length, specified by BLOCK_SIZE in global 
-  namespace.
-  
-    Usage
-   -------
-  filepath = File to be written on.
-  
-   newfile = Name of the encrypted/decrypted file to written upon.
-  
-    method = The way in which the file must be overwritten.
-             (encrypt or decrypt)
-  
-      flag = This is to identify if the method being used is
-             for encryption or decryption. 
-             
-             If the *flag* is *True* then the *nonce* value 
-             is written to the end of the *newfile*.
-             
-             If the *flag* is *False*, then the *nonce* is written to
-             *filepath*.
-  """
-  
-  if kargs:
-    nonce = kargs['nonce']
-    
-  
-  if not flag:
-    global BLOCK_SIZE
-    BLOCK_SIZE = BLOCK_SIZE + 16
-  
-  os.chmod(filepath, stat.S_IRWXU)
-  with open(filepath, 'rb+') as infile:
-    with open(newfile, 'wb+') as outfile:
-      
-      while True:
-        part = infile.read(BLOCK_SIZE)
-        if not part:
-          break
-        
+def _writer(file_path, new_file, method, flag, **kwargs):
+    """Facilitates reading/writing to file.
+    This function facilitates reading from *file_path* and writing to
+    *new_file* with the provided method by looping through each line
+    of the file_path of fixed length, specified by BLOCK_SIZE in global
+    namespace.
+
+      Usage
+     -------
+    file_path = File to be written on.
+
+     new_file = Name of the encrypted/decrypted file to written upon.
+
+      method = The way in which the file must be overwritten.
+               (encrypt or decrypt)
+
+        flag = This is to identify if the method being used is
+               for encryption or decryption.
+
+               If the *flag* is *True* then the *nonce* value
+               is written to the end of the *new_file*.
+
+               If the *flag* is *False*, then the *nonce* is written to
+               *file_path*.
+    """
+
+    if kwargs:
+        nonce = kwargs['nonce']
+
+    if not flag:
+        global BLOCK_SIZE
+        BLOCK_SIZE = BLOCK_SIZE + 16
+
+    os.chmod(file_path, stat.S_IRWXU)
+    with open(file_path, 'rb+') as infile:
+        with open(new_file, 'wb+') as outfile:
+
+            while True:
+                part = infile.read(BLOCK_SIZE)
+                if not part:
+                    break
+
+                try:
+                    outfile.write(method(data=part))
+
+                # This is raised when the file is being decrypted.
+
+                except InvalidTag as err:
+                    # Write the nonce back into the encrypted file,
+                    # and raise Error
+
+                    infile.seek(0, 2)
+                    infile.write(nonce)
+                    raise err
+
+            # Write the nonce into the *new_file* for future use.
+
+            if flag:
+                outfile.write(nonce)
+
+            # Write the nonce to the *file_path* to restore the
+            # original file condition
+
+            if not flag:
+                infile.seek(0, 2)
+                infile.write(nonce)
+
+
+def locker(file_path, password, remove=True):
+    """Provides file locking/unlocking mechanism
+    This function either encrypts or decrypts the file - *file_path*.
+    Encryption or decryption depends upon the file's extension.
+    The user's encryption or decryption task is almost automated since
+    *encryption* or *decryption* is determined by the file's extension.
+
+
+      Usage
+     -------
+     file_path = File to be written on.
+
+     password = Key to be used for encryption/decryption.
+
+       remove = If set to True, the the file that is being
+                encrypted or decrypted will be removed.
+                (Default: True).
+    """
+
+    # The file is being decrypted
+    try:
+        if file_path.endswith(EXT):
+            method = 'decrypt'
+            flag = False
+            new_file = os.path.splitext(file_path)[0]
+
+            # Retrieve the nonce and remove it from the
+            # encrypted file
+            
+            with open(file_path, 'rb+') as f:
+                f.seek(-NONCE_SIZE, 2)
+                nonce = f.read()
+
+            orig_size = os.path.getsize(file_path) - NONCE_SIZE
+            os.truncate(file_path, orig_size)
+
+        # The file is being encrypted
+        else:
+            method = 'encrypt'
+            flag = True
+            new_file = file_path + EXT
+
+            nonce = os.urandom(NONCE_SIZE)
+
+        # Create a cipher with  the required method
+
+        key = hashlib.sha3_256(password).digest()
+        cipher = getattr(AESGCM(key), method)
+
+        # Create a partial function with default values.
+
+        crp = partial(cipher, nonce=nonce, associated_data=None)
+
+        # Read from *file_path* and write to the *new_file*
         try:
-          outfile.write(method(data=part))
-        
-      # This is raised when the file is being decrypted.
-      
+            _writer(file_path,
+                    new_file,
+                    crp,
+                    flag,
+                    nonce=nonce, )
         except InvalidTag as err:
-        # Write the nonce back into the encrypted file,
-        # and raise Error
-        
-          infile.seek(0, 2)
-          infile.write(nonce)
-          raise err
-      
-    # Write the nonce into the *newfile* for future use.
-      
-      if flag:
-        outfile.write(nonce)
-    
-    # Write the nonce to the *filepath* to restore the
-    # original file condition
-    
-      if not flag:
-        infile.seek(0, 2)
-        infile.write(nonce)
+            os.remove(new_file)
+            raise err
 
+        if remove:
+            os.remove(file_path)
 
-def locker(filepath, password, remove=True):
-  """Provides file locking/unlocking mechanism
-  This function either encrypts or decrypts the file - *filepath*.
-  Encryption or decryption depends upon the file's extension.
-  The user's encryption or decryption task is almost automated since
-  *encryption* or *decryption* is determined by the file's extension.
-  
-  
-    Usage
-   -------
-   filepath = File to be written on.
-        
-   password = Key to be used for encryption/decryption.
-   
-     remove = If set to True, the the file that is being
-              encrypted or decrypted will be removed.
-              (Default: True).
-  """
-  
-# The file is being decrypted
-  try:
-    if filepath.endswith(EXT):
-      method = 'decrypt'
-      flag = False
-      newfile = os.path.splitext(filepath)[0]
-
-    # Retreive the nonce and remove it from the
-    # encrypted file
-
-      with open(filepath, 'rb+') as f:
-        f.seek(-NONCE_SIZE, 2)
-        nonce = f.read()
-
-      origsize = os.path.getsize(filepath) - NONCE_SIZE
-      os.truncate(filepath, origsize)
-
-  # The file is being encrypted
-    else:
-      method = 'encrypt'
-      flag = True
-      newfile = filepath + EXT
-
-      nonce = os.urandom(NONCE_SIZE)
-
-  # Create a cipher with  the required method   
-    
-    key = hashlib.sha3_256(password).digest()
-    cipher = getattr(AESGCM(key), method)
-
-  # Create a partial function with default values.
-    
-    crp = partial(cipher, nonce=nonce, associated_data=None)
-
-  # Read from *filepath* and write to the *newfile*
-    _writer(filepath, 
-            newfile,
-            crp,
-            flag,
-           nonce=nonce,)
-
-    if remove:
-      os.remove(filepath)
-  
-  except Exception as err:
-    raise err
+    except Exception as err:
+        raise err
