@@ -36,7 +36,7 @@ from Cryptodome.Cipher import AES
 NONCE_SIZE = 12
 MAC_LEN = 16
 BLOCK_SIZE = 64 * 1024
-EXT = '.TXT'
+EXT = '.0DAY'
 
 
 class DecryptionError(ValueError):
