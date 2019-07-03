@@ -30,13 +30,13 @@ import hashlib
 import os
 import stat
 
-from struct import pack, unpack
+from struct import pack, unpack, calcsize
 from Cryptodome.Cipher import AES
 
 NONCE_SIZE = 12
 MAC_LEN = 16
 BLOCK_SIZE = 64 * 1024
-EXT = '.0DAY'
+EXT = '.TXT'
 
 
 class DecryptionError(ValueError):
@@ -45,28 +45,28 @@ class DecryptionError(ValueError):
 
 def _writer(file_path, new_file, method, flag, **kwargs):
     """Facilitates file writing
-  This function takes care of reading from the file - *file_path*
-  and writing to the new file - *new_file* with the provided method by
-  looping through each line of the file_path of fixed length, specified by
-  BLOCK_SIZE in global namespace.
+    This function takes care of reading from the file - *file_path*
+    and writing to the new file - *new_file* with the provided method by
+    looping through each line of the file_path of fixed length, specified by
+    BLOCK_SIZE in global namespace.
+  
+        Usage
+       -------
+    file_path = File to be written on.
 
-    Usage
-   -------
-  file_path = File to be written on.
+     new_file = Name of the encrypted/decrypted file to written upon.
 
-   new_file = Name of the encrypted/decrypted file to written upon.
+       method = The way in which the file must be overwritten.
+                (encrypt or decrypt)
 
-    method = The way in which the file must be overwritten.
-             (encrypt or decrypt)
+         flag = This is to identify if the method being used is
+                for encryption or decryption.
 
-      flag = This is to identify if the method being used is
-             for encryption or decryption.
-
-             If the *flag* is *True* then the *nonce* value
-             and a *mac* tag function are accepted.
-             If the *flag* is *False*, *nonce* value and a
-             previously read *mac* value are accepted.
-  """
+                 If the *flag* is *True* then the *nonce* value
+                 and a *mac* tag function are accepted.
+                 If the *flag* is *False*, *nonce* value and a
+                 previously read *mac* value are accepted.
+    """
 
     if kwargs:
         nonce = kwargs['nonce']
@@ -91,7 +91,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                 derived_mac_val = mac_func()
 
                 nonce_mac = pack('<{}s{}s'.format(NONCE_SIZE, MAC_LEN),
-                                 nonce, derived_mac_val)
+                             nonce, derived_mac_val)
                 outfile.write(nonce_mac)
 
             # If the file is being decrypted, put the *nonce*
@@ -101,32 +101,32 @@ def _writer(file_path, new_file, method, flag, **kwargs):
             if not flag:
                 infile.seek(0, 2)
                 infile.write(pack('<{}s{}s'.format(NONCE_SIZE, MAC_LEN),
-                                  nonce, mac_val))
+                                nonce, mac_val))
 
 
 def locker(file_path, password, remove=True):
     """Provides file locking/unlocking mechanism
-  This function either encrypts or decrypts the file - *file_path*.
-  Encryption or decryption depends upon the file's extension.
-  The user's encryption or decryption task is almost automated since
-  *encryption* or *decryption* is determined by the file's extension.
+    This function either encrypts or decrypts the file - *file_path*.
+    Encryption or decryption depends upon the file's extension.
+    The user's encryption or decryption task is almost automated since
+    *encryption* or *decryption* is determined by the file's extension.
+  
+    Added:
+        After the *file_path* decryption, decrypted file's verification
+        is done. If it fails, either the Password is incorrect or the
+        encrypted data was supposedly tampered with.
 
-  Added:
-      After the *file_path* decryption, decrypted file's verification
-      is done. If it fails, either the Password is incorrect or the
-      encrypted data was supposedly tampered with.
+        Usage
+       -------
+       file_path = File to be written on.
 
-    Usage
-   -------
-   file_path = File to be written on.
+       password = Key to be used for encryption/decryption.
+                  - Raises DataDecryptionError if *Password* is incorrect
+                    or Encrypted data has been tampered with.
 
-   password = Key to be used for encryption/decryption.
-              - Raises DataDecryptionError if *Password* is incorrect
-                or Encrypted data has been tampered with.
-
-     remove = If set to True, the the file that is being
-              encrypted or decrypted will be removed.
-              (Default: True).
+         remove = If set to True, the the file that is being
+                  encrypted or decrypted will be removed.
+                  (Default: True).
   """
 
     try:
@@ -207,6 +207,7 @@ def locker(file_path, password, remove=True):
                 # and raise DataDecryptionError.
 
                 os.remove(new_file)
+                
                 raise DecryptionError("Either Password is incorrect or "
                                       "Encrypted Data has been tampered.")
 
@@ -218,5 +219,8 @@ def locker(file_path, password, remove=True):
         if remove:
             os.remove(file_path)
 
-    except Exception as err:
-        raise err
+    except FileNotFoundError:
+        pass
+
+    except IsADirectoryError:
+        pass
