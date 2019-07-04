@@ -219,8 +219,5 @@ def locker(file_path, password, remove=True):
         if remove:
             os.remove(file_path)
 
-    except FileNotFoundError:
-        pass
-
-    except IsADirectoryError:
-        pass
+    except Exception as err:
+        raise err
