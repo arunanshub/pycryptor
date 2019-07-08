@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Same Locker, but uses cryptography module instead...
+# An error persists when decrypting files largeer than BLOCK_SIZE
 #
 # =============================================================================
 # MIT License
@@ -88,6 +89,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                     new_data = method(data=part)
                     outfile.write(new_data)
             
+            # An error persists when decrypting files larger than BLOCK_SIZE
             except InvalidTag as err:
                 infile.seek(0, 2)
                 infile.write(nonce)
