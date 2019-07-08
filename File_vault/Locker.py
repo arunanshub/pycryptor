@@ -30,7 +30,6 @@ import hashlib
 import os
 import stat
 
-from mmap import mmap
 from struct import pack, unpack, calcsize
 from Cryptodome.Cipher import AES
 
@@ -76,14 +75,13 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb+') as infile:
-        with open(new_file, 'wb+') as outfile:
-            with mmap(infile.fileno(), 0) as mm:    
-                while True:
-                    part = mm.read(BLOCK_SIZE)
-                    if not part:
-                        break
-                    new = method(part)
-                    outfile.write(new)
+        with open(new_file, 'wb+') as outfile:    
+            while True:
+                part = infile.read(BLOCK_SIZE)
+                if not part:
+                    break
+                new = method(part)
+                outfile.write(new)
 
             # If the file is being encrypted, generate and
             # write the *mac* tag and *nonce* value to the *new_file*.
