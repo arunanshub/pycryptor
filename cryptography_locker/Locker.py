@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Same Locker, but uses cryptography module instead...
-# An error persists when decrypting files largeer than BLOCK_SIZE
+# An error persists when decrypting files larger than BLOCK_SIZE
 #
 # =============================================================================
 # MIT License
