@@ -91,7 +91,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                 derived_mac_val = mac_func()
 
                 nonce_mac = pack('<{}s{}s'.format(NONCE_SIZE, MAC_LEN),
-                             nonce, derived_mac_val)
+                                 nonce, derived_mac_val)
                 outfile.write(nonce_mac)
 
             # If the file is being decrypted, put the *nonce*
@@ -101,7 +101,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
             if not flag:
                 infile.seek(0, 2)
                 infile.write(pack('<{}s{}s'.format(NONCE_SIZE, MAC_LEN),
-                                nonce, mac_val))
+                                  nonce, mac_val))
 
 
 def locker(file_path, password, remove=True):
