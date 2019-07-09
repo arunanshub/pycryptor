@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # Same Locker, but uses cryptography module instead...
-# An error persists when decrypting files larger than BLOCK_SIZE
 #
 # =============================================================================
 # MIT License
@@ -74,7 +73,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
     if not flag:
         global BLOCK_SIZE
-        BLOCK_SIZE = BLOCK_SIZE + 16
+        BLOCK_SIZE += 16
 
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb+') as infile:
@@ -93,6 +92,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
             except InvalidTag as err:
                 infile.seek(0, 2)
                 infile.write(nonce)
+                BLOCK_SIZE -= 16
                 raise err
             
             # Write the nonce into the *new_file* for future use.
