@@ -79,7 +79,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     with open(file_path, 'rb+') as infile:
         with open(new_file, 'wb+') as outfile:
             # Loop through the *infile*, generate encrypted data
-            # and write it t *outfile*.
+            # and write it to *outfile*.
             try:
                 while True:
                     part = infile.read(BLOCK_SIZE)
@@ -88,7 +88,6 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                     new_data = method(data=part)
                     outfile.write(new_data)
             
-            # An error persists when decrypting files larger than BLOCK_SIZE
             except InvalidTag as err:
                 infile.seek(0, 2)
                 infile.write(nonce)
@@ -152,7 +151,7 @@ def locker(file_path, password, remove=True):
 
             nonce = os.urandom(NONCE_SIZE)
 
-        # Create a cipher with  the required method
+        # Create a cipher with the required method
 
         key = hashlib.sha3_256(password).digest()
         cipher = getattr(AESGCM(key), method)
