@@ -36,7 +36,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 
 NONCE_SIZE = 12
-MAC_LEN = 16
 BLOCK_SIZE = 64 * 1024
 
 EXT = '.0DAY'
@@ -72,6 +71,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
         nonce = kwargs['nonce']
 
     if not flag:
+        # Setting new BLOCK_SIZE for reading encrypted data
         global BLOCK_SIZE
         BLOCK_SIZE += 16
 
@@ -91,6 +91,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
             except InvalidTag as err:
                 infile.seek(0, 2)
                 infile.write(nonce)
+                # Reset the BLOCK_SIZE to original value
                 BLOCK_SIZE -= 16
                 raise err
             
