@@ -3,6 +3,7 @@ import os
 
 # define an extension list here if you want to filter
 # out only selected extensions
+# extension_list = [...]
 
 def walker(file_path):
     """
