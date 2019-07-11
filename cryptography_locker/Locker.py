@@ -31,14 +31,16 @@ import os
 import stat
 import hashlib
 
+from struct import pack, unpack
 from functools import partial
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 
 NONCE_SIZE = 12
+SALT_LEN = 32
 BLOCK_SIZE = 64 * 1024
 
-EXT = '.0DAY'
+EXT = '.TXT'
 
 
 def _writer(file_path, new_file, method, flag, **kwargs):
@@ -69,6 +71,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
     if kwargs:
         nonce = kwargs['nonce']
+        salt = kwargs['salt']
 
     if not flag:
         # Setting new BLOCK_SIZE for reading encrypted data
@@ -87,25 +90,29 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                         break
                     new_data = method(data=part)
                     outfile.write(new_data)
-            
+
             except InvalidTag as err:
                 infile.seek(0, 2)
-                infile.write(nonce)
+                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                                  nonce, salt))
+
                 # Reset the BLOCK_SIZE to original value
                 BLOCK_SIZE -= 16
                 raise err
-            
+
             # Write the nonce into the *new_file* for future use.
 
             if flag:
-                outfile.write(nonce)
+                outfile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                                   nonce, salt))
 
             # Write the nonce to the *file_path* to restore the
             # original file condition
 
-            if not flag:
+            else:
                 infile.seek(0, 2)
-                infile.write(nonce)
+                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                                  nonce, salt))
 
 
 def locker(file_path, password, remove=True):
@@ -136,12 +143,12 @@ def locker(file_path, password, remove=True):
 
             # Retrieve the nonce and remove it from the
             # encrypted file
-            
-            with open(file_path, 'rb+') as f:
-                f.seek(-NONCE_SIZE, 2)
-                nonce = f.read()
 
-            orig_size = os.path.getsize(file_path) - NONCE_SIZE
+            with open(file_path, 'rb+') as f:
+                f.seek(-(NONCE_SIZE + SALT_LEN), 2)
+                nonce, salt = unpack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN), f.read())
+
+            orig_size = os.path.getsize(file_path) - (NONCE_SIZE + SALT_LEN)
             os.truncate(file_path, orig_size)
 
         # The file is being encrypted
@@ -150,11 +157,12 @@ def locker(file_path, password, remove=True):
             flag = True
             new_file = file_path + EXT
 
+            salt = os.urandom(SALT_LEN)
             nonce = os.urandom(NONCE_SIZE)
 
         # Create a cipher with the required method
 
-        key = hashlib.sha3_256(password).digest()
+        key = hashlib.pbkdf2_hmac('sha3-256', password, salt, 10000, 32)
         cipher = getattr(AESGCM(key), method)
 
         # Create a partial function with default values.
@@ -167,10 +175,11 @@ def locker(file_path, password, remove=True):
                     new_file,
                     crp,
                     flag,
-                    nonce=nonce, )
+                    nonce=nonce,
+                    salt=salt, )
         except InvalidTag as err:
             os.remove(new_file)
-            raise err
+            raise InvalidTag('Invalid Password or tampered data.')
 
         if remove:
             os.remove(file_path)
