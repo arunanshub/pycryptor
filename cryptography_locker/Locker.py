@@ -40,7 +40,7 @@ NONCE_SIZE = 12
 SALT_LEN = 32
 BLOCK_SIZE = 64 * 1024
 
-EXT = '.TXT'
+EXT = '.0DAY'
 
 
 def _writer(file_path, new_file, method, flag, **kwargs):
