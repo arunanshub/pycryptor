@@ -93,7 +93,8 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
             except InvalidTag as err:
                 infile.seek(0, 2)
-                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, 
+                                                   SALT_LEN),
                                   nonce, salt))
 
                 # Reset the BLOCK_SIZE to original value
@@ -103,7 +104,8 @@ def _writer(file_path, new_file, method, flag, **kwargs):
             # Write the nonce into the *new_file* for future use.
 
             if flag:
-                outfile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                outfile.write(pack('<{}s{}s'.format(NONCE_SIZE, 
+                                                    SALT_LEN),
                                    nonce, salt))
 
             # Write the nonce to the *file_path* to restore the
@@ -111,7 +113,8 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
             else:
                 infile.seek(0, 2)
-                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, 
+                                                   SALT_LEN),
                                   nonce, salt))
 
 
@@ -146,9 +149,12 @@ def locker(file_path, password, remove=True):
 
             with open(file_path, 'rb+') as f:
                 f.seek(-(NONCE_SIZE + SALT_LEN), 2)
-                nonce, salt = unpack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN), f.read())
+                nonce, salt = unpack('<{}s{}s'.format(NONCE_SIZE, 
+                                                      SALT_LEN), 
+                                     f.read())
 
-            orig_size = os.path.getsize(file_path) - (NONCE_SIZE + SALT_LEN)
+            orig_size = os.path.getsize(file_path) - (NONCE_SIZE + 
+                                                      SALT_LEN)
             os.truncate(file_path, orig_size)
 
         # The file is being encrypted
@@ -162,7 +168,7 @@ def locker(file_path, password, remove=True):
 
         # Create a cipher with the required method
 
-        key = hashlib.pbkdf2_hmac('sha3-256', password, salt, 10000, 32)
+        key = hashlib.pbkdf2_hmac('sha512', password, salt, 10000, 32)
         cipher = getattr(AESGCM(key), method)
 
         # Create a partial function with default values.
@@ -179,7 +185,8 @@ def locker(file_path, password, remove=True):
                     salt=salt, )
         except InvalidTag as err:
             os.remove(new_file)
-            raise InvalidTag('Invalid Password or tampered data.')
+            raise InvalidTag("Invalid Password or "
+                             "tampered data.")
 
         if remove:
             os.remove(file_path)
