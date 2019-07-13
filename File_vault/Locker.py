@@ -174,7 +174,7 @@ def locker(file_path, password, remove=True):
 
         key = hashlib.pbkdf2_hmac('sha3-256', password, salt, 10000, 32)
 
-        # ############# CIPHER GENERATION PORTION #############
+        # ============ CIPHER GENERATION PORTION ===============
         # A cipher object will take care of the all
         # the required mac_tag and verification.
         # AES-GCM-256 chosen for security and authentication
@@ -184,7 +184,7 @@ def locker(file_path, password, remove=True):
         mac_func = getattr(cipher_obj, 'digest')
         verifier = getattr(cipher_obj, 'verify')
 
-        # ############# FILE WRITING PORTION ###################
+        # =============== FILE WRITING PORTION =================
         # Read from the *file_path* and,
         # write to the *new_file* using _writer defined above.
 
@@ -197,7 +197,7 @@ def locker(file_path, password, remove=True):
                 mac_value=mac,
                 salt=salt, )
 
-        # ################ VERIFICATION PORTION ##################
+        # =============== VERIFICATION PORTION ==================
         # Verify the file for integrity if the
         # current file is being decrypted.
 
@@ -214,7 +214,7 @@ def locker(file_path, password, remove=True):
 
                 raise DecryptionError("Invalid password or tampered data.")
 
-        #########################################################
+        # =======================================================
 
         # If remove set to True, delete the file
         # that is being worked upon.
