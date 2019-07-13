@@ -180,7 +180,7 @@ def locker(file_path, password, remove=True):
             salt = os.urandom(SALT_LEN)
             mac = None
 
-        key = hashlib.pbkdf2_hmac('sha3-256', password, salt, 10000, 32)
+        key = hashlib.pbkdf2_hmac('sha512', password, salt, 10000, 32)
 
         # ============ CIPHER GENERATION PORTION ===============
         # A cipher object will take care of the all
