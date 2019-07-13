@@ -220,7 +220,7 @@ def locker(file_path, password, remove=True):
 
                 os.remove(new_file)
 
-                raise DecryptionError("Invalid password or 
+                raise DecryptionError("Invalid password or "
                                       "tampered data.")
 
         # =======================================================
