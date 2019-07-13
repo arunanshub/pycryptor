@@ -88,7 +88,9 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                 # Generating the *mac* tag after encryption.
                 derived_mac_val = mac_func()
 
-                nonce_mac = pack('<{}s{}s{}s'.format(NONCE_SIZE, MAC_LEN, SALT_LEN),
+                nonce_mac = pack('<{}s{}s{}s'.format(NONCE_SIZE, 
+                                                     MAC_LEN, 
+                                                     SALT_LEN),
                                  nonce, derived_mac_val, salt)
                 outfile.write(nonce_mac)
 
@@ -98,7 +100,9 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
             else:
                 infile.seek(0, 2)
-                infile.write(pack('<{}s{}s{}s'.format(NONCE_SIZE, MAC_LEN, SALT_LEN),
+                infile.write(pack('<{}s{}s{}s'.format(NONCE_SIZE, 
+                                                      MAC_LEN, 
+                                                      SALT_LEN),
                                   nonce, mac_val, salt))
 
 
@@ -138,13 +142,17 @@ def locker(file_path, password, remove=True):
 
             with open(file_path, 'rb+') as f:
                 f.seek(-(NONCE_SIZE + MAC_LEN + SALT_LEN), 2)
-                (nonce, mac, salt) = unpack('<{}s{}s{}s'.format(NONCE_SIZE, MAC_LEN, SALT_LEN),
+                (nonce, mac, salt) = unpack('<{}s{}s{}s'.format(NONCE_SIZE, 
+                                                                MAC_LEN, 
+                                                                SALT_LEN),
                                             f.read())
 
             # Remove the *mac* and *nonce* from the encrypted file.
             # If not removed, Incorrect decryption will occur.
 
-            orig_file_size = os.path.getsize(file_path) - (NONCE_SIZE + MAC_LEN + SALT_LEN)
+            orig_file_size = os.path.getsize(file_path) - (NONCE_SIZE + 
+                                                           MAC_LEN + 
+                                                           SALT_LEN)
             os.truncate(file_path, orig_file_size)
             new_file = os.path.splitext(file_path)[0]
 
@@ -165,9 +173,9 @@ def locker(file_path, password, remove=True):
             salt = os.urandom(SALT_LEN)
             mac = None
 
-        key = hashlib.pbkdf2_hmac('sha3-256', password, salt, 10000, 32)
+        key = hashlib.pbkdf2_hmac('sha512', password, salt, 10000, 32)
 
-        # ############# CIPHER GENERATION PORTION #############
+        # ============ CIPHER GENERATION PORTION ===============
         # A cipher object will take care of the all
         # the required mac_tag and verification.
         # AES-GCM-256 chosen for security and authentication
@@ -177,7 +185,7 @@ def locker(file_path, password, remove=True):
         mac_func = getattr(cipher_obj, 'digest')
         verifier = getattr(cipher_obj, 'verify')
 
-        # ############# FILE WRITING PORTION ###################
+        # =============== FILE WRITING PORTION =================
         # Read from the *file_path* and,
         # write to the *new_file* using _writer defined above.
 
@@ -190,7 +198,7 @@ def locker(file_path, password, remove=True):
                 mac_value=mac,
                 salt=salt, )
 
-        # ################ VERIFICATION PORTION ##################
+        # ================ VERIFICATION PORTION ================
         # Verify the file for integrity if the
         # current file is being decrypted.
 
@@ -205,9 +213,10 @@ def locker(file_path, password, remove=True):
 
                 os.remove(new_file)
 
-                raise DecryptionError("Invalid password or tampered data.")
+                raise DecryptionError("Invalid password or "
+                                      "tampered data.")
 
-        #########################################################
+        # ======================================================
 
         # If remove set to True, delete the file
         # that is being worked upon.
