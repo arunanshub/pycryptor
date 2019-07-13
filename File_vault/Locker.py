@@ -126,14 +126,14 @@ def locker(file_path, password, remove=True):
    -------
    file_path = File to be written on.
 
-   password = Key to be used for encryption/decryption.
-              - Raises DataDecryptionError if *Password* is incorrect
-                or Encrypted data has been tampered with.
+    password = Key to be used for encryption/decryption.
+               - Raises DataDecryptionError if *Password* is incorrect
+                 or Encrypted data has been tampered with.
 
-     remove = If set to True, the the file that is being
-              encrypted or decrypted will be removed.
-              (Default: True).
-  """
+      remove = If set to True, the the file that is being
+               encrypted or decrypted will be removed.
+               (Default: True).
+    """
 
     try:
 
