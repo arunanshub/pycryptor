@@ -53,9 +53,7 @@ class Locker:
             self._flag = False if file_path.endswith(EXT) else True
         else:
             raise FileNotFoundError('No such file {} found.'.format(file_path))
-        
-
-
+    
     @property
     def password(self):
         raise AttributeError('password Attribute is not readable.')
