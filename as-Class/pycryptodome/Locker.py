@@ -45,6 +45,8 @@ class DecryptionError(ValueError):
 
 
 class Locker:
+    # todo: improve documentation
+    
     def __init__(self, file_path, **kwargs):
         self._salt = None
         self.password_hash = None
@@ -159,13 +161,8 @@ class Locker:
 
         Usage
        -------
-       file_path = File to be written on.
-
-       password = Key to be used for encryption/decryption.
-                  - Raises DataDecryptionError if *Password* is incorrect
-                    or Encrypted data has been tampered with.
-
-         remove = If set to True, the the file that is being
+        
+        remove = If set to True, the the file that is being
                   encrypted or decrypted will be removed.
                   (Default: True).
       """
