@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# The same Locker but implemented as class.
+# locker v3.2
 #
 # =============================================================================
 # MIT License
@@ -31,7 +31,10 @@ import os
 import stat
 from struct import pack, unpack
 
-from Cryptodome.Cipher import AES
+try:
+    from Cryptodome.Cipher import AES
+except:
+    !pip install pycryptodomex
 
 NONCE_SIZE = 12
 SALT_LEN = 32
@@ -39,11 +42,13 @@ MAC_LEN = 16
 BLOCK_SIZE = 64 * 1024
 EXT = '.0DAY'
 
+
 class DecryptionError(ValueError):
     pass
 
+
 class Locker:
-    def __init__(self, file_path):
+    def __init__(self, file_path, **kwargs):
         self._salt = None
         self.password_hash = None
         self._flag = None
@@ -53,6 +58,9 @@ class Locker:
             self._flag = False if file_path.endswith(EXT) else True
         else:
             raise FileNotFoundError('No such file {} found.'.format(file_path))
+            
+        if kwargs:
+            self.password = kwargs['password']
     
     @property
     def password(self):
