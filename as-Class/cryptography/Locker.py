@@ -153,7 +153,7 @@ class Locker:
                     infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
                                       nonce, salt))
 
-    def lock(self, remove=True):
+    def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
         This function either encrypts or decrypts the file - *file_path*.
         Encryption or decryption depends upon the file's extension.
