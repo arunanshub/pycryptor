@@ -22,9 +22,9 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
     
 
 ## Additional note:
-  - A seperate folder named as **``cryptography_locker``** contains the same Locker file,
+  - A seperate folder named as **`cryptography_locker`** contains the same Locker file,
     but this one uses cryptography module instead. You can replace the **original
-    ``Locker.py``** with this ``Locker.py`` instead, it won't harm the functionality of the
+    `Locker.py`** with this `Locker.py` instead, it won't harm the functionality of the
     program.
     
   P.S: The encryption and decryption speed may increase if this file is used. 
@@ -37,15 +37,19 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the ```threa
      |:---------:|:---------------------------:|:---------------------------:|
      |    85MB   |          0.220274           |          0.217195           |
      |   858MB   |          5.068394           |          4.854502           |
-     
    
- ### Warning note for both the lockers (Read this first before using the Locker(s)):
+  + __`as-Class`__ folder contains both the Lockers, but they are implemented as a class.
+   
+    I'll add the procedure to use them soon in __`as-Class/README.md`__. But for now you can
+    try to read and Experiment with the codes.
+     
+  ### Warning note for both the lockers (Read this first before using the Locker(s)):
    
    + **Please note that the file encrypted with pycryptodome/Locker.py won't be decrypted by this 
        cryptography/Locker.py and vice versa. This is due to the way pycryptodome and cryptography module works.**
    
    +   Encrypt (or decrypt) the files with appropriate ```Locker.py``` *only*. If you fail to do 
-       do so, unforseeable problems may destroy your program logic
+       do so, unforseeable problems may destroy your program logic.
        
 ---
   
