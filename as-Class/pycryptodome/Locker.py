@@ -31,10 +31,7 @@ import os
 import stat
 from struct import pack, unpack
 
-try:
-    from Cryptodome.Cipher import AES
-except:
-    !pip install pycryptodomex
+from Cryptodome.Cipher import AES
 
 NONCE_SIZE = 12
 SALT_LEN = 32
