@@ -28,39 +28,38 @@
 # =============================================================================
 
 
+import hashlib
 import os
 import stat
-import hashlib
-
-from struct import pack, unpack
 from functools import partial
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from struct import pack, unpack
+
 from cryptography.exceptions import InvalidTag
-
-NONCE_SIZE = 12
-SALT_LEN = 32
-BLOCK_SIZE = 64 * 1024
-
-EXT = '.0DAY'
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
 class Locker:
+    NONCE_SIZE = 12
+    SALT_LEN = 32
+    BLOCK_SIZE = 64 * 1024
+    EXT = '.0DAY'
+
     # todo: improve documentation
-    
+
     def __init__(self, file_path, **kwargs):
         self._salt = None
         self.password_hash = None
         self._flag = None
-        
+
         if os.path.exists(file_path):
             self.file_path = file_path
-            self._flag = False if file_path.endswith(EXT) else True
+            self._flag = False if file_path.endswith(self.EXT) else True
         else:
             raise FileNotFoundError('No such file {} found.'.format(file_path))
-            
+
         if kwargs:
             self.password = kwargs['password']
-    
+
     @property
     def password(self):
         raise AttributeError('password Attribute is not readable.')
@@ -72,17 +71,17 @@ class Locker:
 
         else:
             with open(self.file_path, 'rb') as f:
-                f.seek(-SALT_LEN, 2)
+                f.seek(-self.SALT_LEN, 2)
                 self._salt = f.read()
 
-        self.password_hash = hashlib.pbkdf2_hmac('sha512', 
-                                                 password, 
-                                                 self._salt, 
-                                                 50000, 
+        self.password_hash = hashlib.pbkdf2_hmac('sha512',
+                                                 password,
+                                                 self._salt,
+                                                 50000,
                                                  32)
 
-    @staticmethod
-    def _writer(file_path, new_file, method, flag, **kwargs):
+    @classmethod
+    def _writer(cls, file_path, new_file, method, flag, **kwargs):
         """Facilitates reading/writing to file.
         This function facilitates reading from *file_path* and writing to
         *new_file* with the provided method by looping through each line
@@ -114,8 +113,7 @@ class Locker:
 
         if not flag:
             # Setting new BLOCK_SIZE for reading encrypted data
-            global BLOCK_SIZE
-            BLOCK_SIZE += 16
+            cls.BLOCK_SIZE += 16
 
         os.chmod(file_path, stat.S_IRWXU)
         with open(file_path, 'rb+') as infile:
@@ -124,7 +122,7 @@ class Locker:
                 # and write it to *outfile*.
                 try:
                     while True:
-                        part = infile.read(BLOCK_SIZE)
+                        part = infile.read(cls.BLOCK_SIZE)
                         if not part:
                             break
                         new_data = method(data=part)
@@ -132,17 +130,18 @@ class Locker:
 
                 except InvalidTag as err:
                     infile.seek(0, 2)
-                    infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                    infile.write(pack('<{}s{}s'.format(cls.NONCE_SIZE,
+                                                       cls.SALT_LEN),
                                       nonce, salt))
 
                     # Reset the BLOCK_SIZE to original value
-                    BLOCK_SIZE -= 16
                     raise err
 
                 # Write the nonce into the *new_file* for future use.
 
                 if flag:
-                    outfile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                    outfile.write(pack('<{}s{}s'.format(cls.NONCE_SIZE,
+                                                        cls.SALT_LEN),
                                        nonce, salt))
 
                 # Write the nonce to the *file_path* to restore the
@@ -150,7 +149,8 @@ class Locker:
 
                 else:
                     infile.seek(0, 2)
-                    infile.write(pack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN),
+                    infile.write(pack('<{}s{}s'.format(cls.NONCE_SIZE,
+                                                       cls.SALT_LEN),
                                       nonce, salt))
 
     def locker(self, remove=True):
@@ -179,20 +179,21 @@ class Locker:
                 # encrypted file
 
                 with open(self.file_path, 'rb+') as f:
-                    f.seek(-(NONCE_SIZE + SALT_LEN), 2)
-                    nonce, _ = unpack('<{}s{}s'.format(NONCE_SIZE, SALT_LEN), 
+                    f.seek(-(self.NONCE_SIZE + self.SALT_LEN), 2)
+                    nonce, _ = unpack('<{}s{}s'.format(self.NONCE_SIZE,
+                                                       self.SALT_LEN),
                                       f.read())
 
-                orig_size = os.path.getsize(self.file_path) - (NONCE_SIZE + 
-                                                               SALT_LEN)
+                orig_size = os.path.getsize(self.file_path) - (self.NONCE_SIZE +
+                                                               self.SALT_LEN)
                 os.truncate(self.file_path, orig_size)
 
             # The file is being encrypted
             else:
                 method = 'encrypt'
-                new_file = self.file_path + EXT
+                new_file = self.file_path + self.EXT
 
-                nonce = os.urandom(NONCE_SIZE)
+                nonce = os.urandom(self.NONCE_SIZE)
 
             # Create a cipher with the required method
 
@@ -220,12 +221,11 @@ class Locker:
 
         except Exception as err:
             raise err
-    
+
     def __repr__(self):
         password_check = True if self.password_hash is not None else False
         method_check = 'encrypt' if self._flag else 'decrypt'
 
         return '<Locker: method=`{method}`, password={pwd}>'.format(
-               method=method_check, 
-               pwd=password_check, )
-
+            method=method_check,
+            pwd=password_check, )
