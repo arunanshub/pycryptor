@@ -54,7 +54,6 @@ class Locker:
 
         if os.path.exists(file_path):
             self.file_path = file_path
-            self._flag = False if file_path.endswith(self.EXT) else True
         else:
             raise FileNotFoundError('No such file {} found.'.format(file_path))
 
@@ -67,14 +66,15 @@ class Locker:
 
     @password.setter
     def password(self, password):
-        if self._flag:
+        if not self.file_path.endswith(EXT):
             self._salt = os.urandom(32)
-
+            self._flag = True
+        
         else:
             with open(self.file_path, 'rb') as f:
                 f.seek(-self.SALT_LEN, 2)
                 self._salt = f.read()
-
+                self._flag = False
         self.password_hash = hashlib.pbkdf2_hmac('sha512',
                                                  password,
                                                  self._salt,
@@ -267,7 +267,8 @@ class Locker:
 
     def __repr__(self):
         password_check = True if self.password_hash is not None else False
-        method_check = 'encrypt' if self._flag else 'decrypt'
+        method_check = 'encrypt' if self._flag else 'not set' \
+                        if self._flag is None else 'decrypt'
 
         return '<Locker: method=`{method}`, password={pwd}>'.format(
             method=method_check,
