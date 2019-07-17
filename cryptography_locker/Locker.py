@@ -168,7 +168,7 @@ def locker(file_path, password, remove=True):
 
         # Create a cipher with the required method
 
-        key = hashlib.pbkdf2_hmac('sha512', password, salt, 10000, 32)
+        key = hashlib.pbkdf2_hmac('sha512', password, salt, 50000, 32)
         cipher = getattr(AESGCM(key), method)
 
         # Create a partial function with default values.
