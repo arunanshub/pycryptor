@@ -33,34 +33,34 @@ from struct import pack, unpack
 
 from Cryptodome.Cipher import AES
 
-NONCE_SIZE = 12
-SALT_LEN = 32
-MAC_LEN = 16
-BLOCK_SIZE = 64 * 1024
-EXT = '.0DAY'
-
 
 class DecryptionError(ValueError):
     pass
 
 
 class Locker:
+    NONCE_SIZE = 12
+    SALT_LEN = 32
+    MAC_LEN = 16
+    BLOCK_SIZE = 64 * 1024
+    EXT = '.0DAY'
+
     # todo: improve documentation
-    
+
     def __init__(self, file_path, **kwargs):
         self._salt = None
         self.password_hash = None
         self._flag = None
-        
+
         if os.path.exists(file_path):
             self.file_path = file_path
-            self._flag = False if file_path.endswith(EXT) else True
+            self._flag = False if file_path.endswith(self.EXT) else True
         else:
             raise FileNotFoundError('No such file {} found.'.format(file_path))
-            
+
         if kwargs:
             self.password = kwargs['password']
-    
+
     @property
     def password(self):
         raise AttributeError('password Attribute is not readable.')
@@ -72,13 +72,13 @@ class Locker:
 
         else:
             with open(self.file_path, 'rb') as f:
-                f.seek(-SALT_LEN, 2)
+                f.seek(-self.SALT_LEN, 2)
                 self._salt = f.read()
 
-        self.password_hash = hashlib.pbkdf2_hmac('sha512', 
-                                                 password, 
-                                                 self._salt, 
-                                                 50000, 
+        self.password_hash = hashlib.pbkdf2_hmac('sha512',
+                                                 password,
+                                                 self._salt,
+                                                 50000,
                                                  32)
 
     @classmethod
@@ -117,7 +117,7 @@ class Locker:
         with open(file_path, 'rb+') as infile:
             with open(new_file, 'wb+') as outfile:
                 while True:
-                    part = infile.read(BLOCK_SIZE)
+                    part = infile.read(cls.BLOCK_SIZE)
                     if not part:
                         break
                     new = method(part)
@@ -130,9 +130,9 @@ class Locker:
                     # Generating the *mac* tag after encryption.
                     derived_mac_val = mac_func()
 
-                    nonce_mac = pack('<{}s{}s{}s'.format(NONCE_SIZE, 
-                                                         MAC_LEN, 
-                                                         SALT_LEN),
+                    nonce_mac = pack('<{}s{}s{}s'.format(cls.NONCE_SIZE,
+                                                         cls.MAC_LEN,
+                                                         cls.SALT_LEN),
                                      nonce, derived_mac_val, salt)
                     outfile.write(nonce_mac)
 
@@ -142,9 +142,9 @@ class Locker:
 
                 else:
                     infile.seek(0, 2)
-                    infile.write(pack('<{}s{}s{}s'.format(NONCE_SIZE, 
-                                                          MAC_LEN, 
-                                                          SALT_LEN),
+                    infile.write(pack('<{}s{}s{}s'.format(cls.NONCE_SIZE,
+                                                          cls.MAC_LEN,
+                                                          cls.SALT_LEN),
                                       nonce, mac_val, salt))
 
     def locker(self, remove=True):
@@ -180,18 +180,20 @@ class Locker:
                 # and *mac* values.
 
                 with open(self.file_path, 'rb+') as f:
-                    f.seek(-(NONCE_SIZE + MAC_LEN + SALT_LEN), 2)
-                    (nonce, mac, _) = unpack('<{}s{}s{}s'.format(NONCE_SIZE, 
-                                                                 MAC_LEN, 
-                                                                 SALT_LEN),
+                    f.seek(-(self.NONCE_SIZE + self.MAC_LEN + self.SALT_LEN), 2)
+                    (nonce, mac, _) = unpack('<{}s{}s{}s'.format(self.NONCE_SIZE,
+                                                                 self.MAC_LEN,
+                                                                 self.SALT_LEN),
                                              f.read())
 
                 # Remove the *mac* and *nonce* from the encrypted file.
                 # If not removed, Incorrect decryption will occur.
 
-                orig_file_size = os.path.getsize(self.file_path) - (NONCE_SIZE + 
-                                                                    MAC_LEN + 
-                                                                    SALT_LEN)
+                orig_file_size = os.path.getsize(self.file_path) - \
+                                                        (self.NONCE_SIZE + 
+                                                        self.MAC_LEN + 
+                                                        self.SALT_LEN)
+                
                 os.truncate(self.file_path, orig_file_size)
                 new_file = os.path.splitext(self.file_path)[0]
 
@@ -201,14 +203,14 @@ class Locker:
 
                 method = 'encrypt'
                 flag = True
-                new_file = self.file_path + EXT
+                new_file = self.file_path + self.EXT
 
                 # Generate a *nonce* and set the mac to None,
                 # As the *mac* ***will not be received*** this time
                 # but it will be generated after encryption.
                 #
                 # Generation will take place in _writer(...)
-                nonce = os.urandom(NONCE_SIZE)
+                nonce = os.urandom(self.NONCE_SIZE)
                 mac = None
 
             # ================= CIPHER GENERATION PORTION ============
@@ -258,7 +260,8 @@ class Locker:
 
             if remove:
                 os.remove(self.file_path)
-
+            
+            return self
         except Exception as err:
             raise err
 
@@ -267,5 +270,5 @@ class Locker:
         method_check = 'encrypt' if self._flag else 'decrypt'
 
         return '<Locker: method=`{method}`, password={pwd}>'.format(
-               method=method_check, 
-               pwd=password_check, )
+            method=method_check,
+            pwd=password_check, )
