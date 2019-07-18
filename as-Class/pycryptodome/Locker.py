@@ -66,7 +66,7 @@ class Locker:
 
     @password.setter
     def password(self, password):
-        if not self.file_path.endswith(EXT):
+        if not self.file_path.endswith(self.EXT):
             self._salt = os.urandom(32)
             self._flag = True
         
