@@ -42,6 +42,7 @@ Atleast, for now, the encryptor and decryptor functions doesn't use the `threadi
 |  858MB  |         5.068394          |         4.854502          |
 
  - __`as-Class`__ folder contains both the Lockers, but they are implemented as a class.
+	 
 	 - > I'll add the procedure to use them soon in __`as-Class/README.md`__. But for now you can try to read and Experiment with the codes.
 
 ## Warning note for both the Lockers---Read Me First
