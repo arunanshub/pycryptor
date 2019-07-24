@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# locker v3.2
+# locker v3.3
 #
 # =============================================================================
 # MIT License
@@ -48,10 +48,6 @@ class Locker:
     # todo: improve documentation
 
     def __init__(self, file_path, **kwargs):
-        self._salt = None
-        self.password_hash = None
-        self._flag = None
-
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
@@ -59,13 +55,34 @@ class Locker:
 
         if kwargs:
             self.password = kwargs['password']
-
+        
+        self._salt = None
+        self.password_hash = None
+        self._flag = None
+            
+    def __setattr__(self, name, value):
+        if name != 'password':
+            if self.__dict__.get('password_hash'):
+                raise AttributeError('Attribute cannot be set when password is present.')
+            else:
+                object.__setattr__(self, name, value)
+        else:
+            # to prevent AttributeError caused while
+            # changing password.
+            if self.__dict__.get('password_hash'):
+                del self.password_hash
+            object.__setattr__(self, name, value)
+    
     @property
     def password(self):
         raise AttributeError('password Attribute is not readable.')
 
     @password.setter
     def password(self, password):
+        
+        if len(password) < 8:
+            raise ValueError(f'password must be longer than 8 bytes.')
+        
         if not self.file_path.endswith(self.EXT):
             self._salt = os.urandom(32)
             self._flag = True
@@ -80,6 +97,7 @@ class Locker:
                                                  self._salt,
                                                  50000,
                                                  32)
+        
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
@@ -88,19 +106,17 @@ class Locker:
         and writing to the new file - *new_file* with the provided method by
         looping through each line of the file_path of fixed length, specified by
         BLOCK_SIZE in global namespace.
-
             Usage
            -------
         file_path = File to be written on.
-
+         
          new_file = Name of the encrypted/decrypted file to written upon.
-
+           
            method = The way in which the file must be overwritten.
                     (encrypt or decrypt)
-
+             
              flag = This is to identify if the method being used is
                     for encryption or decryption.
-
                      If the *flag* is *True* then the *nonce* value
                      and a *mac* tag function are accepted.
                      If the *flag* is *False*, *nonce* value and a
@@ -153,12 +169,10 @@ class Locker:
         Encryption or decryption depends upon the file's extension.
         The user's encryption or decryption task is almost automated since
         *encryption* or *decryption* is determined by the file's extension.
-
         Added:
             After the *file_path* decryption, decrypted file's verification
             is done. If it fails, either the Password is incorrect or the
             encrypted data was supposedly tampered with.
-
         Usage
        -------
         
@@ -258,18 +272,21 @@ class Locker:
             # If remove set to True, delete the file
             # that is being worked upon.
 
+            
+        except Exception as err:
+            raise err
+        
+        else:
             if remove:
                 os.remove(self.file_path)
             
             return self
-        except Exception as err:
-            raise err
 
     def __repr__(self):
         password_check = True if self.password_hash is not None else False
         method_check = 'encrypt' if self._flag else 'not set' \
                         if self._flag is None else 'decrypt'
 
-        return '<Locker: method=`{method}`, password={pwd}>'.format(
-            method=method_check,
-            pwd=password_check, )
+        return f'<{self.__class__.__name__}: method=`{method_check}`, ' \
+               f'using-password={password_check}>'
+     
