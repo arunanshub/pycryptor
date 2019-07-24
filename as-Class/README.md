@@ -18,7 +18,7 @@
 				
 	```python
 	# Let's assume there is a file called "foo.txt"
-	# For now, this ordering is important.
+	# Please note that this ordering is important.
 
 	>>> locker_obj = Locker('foo.txt')
 	>>> locker_obj.EXT = '.foo_file'
