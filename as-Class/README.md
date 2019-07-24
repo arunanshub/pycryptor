@@ -29,17 +29,6 @@
 	# And the file "foo.txt" changes to "foo.txt.foo_file"
 	```
 
-- You can also lock a file directly using Locker like this:-
-	
-	```python
-	# Assume there exists "file_foo.txt"
-
-	>>> Locker('file_foo.txt', password=b'a password').locker()
-	<Locker: method=`encrypt`, password=True>
-
-	# And the file is locked...
-	```
-
 > Please note that this Locker is fully functional, although under 
 > construction. So if there is a bug that catches your attention, 
 > please let me know. This will help me to improve the code for
