@@ -47,10 +47,6 @@ class Locker:
     # todo: improve documentation
 
     def __init__(self, file_path, **kwargs):
-        self._salt = None
-        self.password_hash = None
-        self._flag = None
-
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
@@ -58,6 +54,22 @@ class Locker:
 
         if kwargs:
             self.password = kwargs['password']
+        
+        self._salt = None
+        self.password_hash = None
+        self._flag = None
+
+    def __setattr__(self, name, value):
+        if name != 'password':
+            if self.__dict__.get('password_hash'):
+                raise AttributeError('Attribute cannot be set when password is present.')
+            else:
+                object.__setattr__(self, name, value)
+        else:
+            # to prevent AttributeError
+            if self.__dict__.get('password_hash'):
+                del self.password_hash
+            object.__setattr__(self, name, value)
 
     @property
     def password(self):
@@ -65,20 +77,25 @@ class Locker:
 
     @password.setter
     def password(self, password):
+        
+        if len(password) < 8:
+            raise ValueError(f'password must be longer than 8 bytes.')
+        
         if not self.file_path.endswith(self.EXT):
             self._salt = os.urandom(32)
             self._flag = True
+        
         else:
             with open(self.file_path, 'rb') as f:
                 f.seek(-self.SALT_LEN, 2)
                 self._salt = f.read()
                 self._flag = False
-        
         self.password_hash = hashlib.pbkdf2_hmac('sha512',
                                                  password,
                                                  self._salt,
                                                  50000,
                                                  32)
+
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
@@ -218,8 +235,7 @@ class Locker:
 
             if remove:
                 os.remove(self.file_path)
-        
-            return self
+
         except Exception as err:
             raise err
 
@@ -228,6 +244,5 @@ class Locker:
         method_check = 'encrypt' if self._flag else 'not set' \
                         if self._flag is None else 'decrypt'
 
-        return '<Locker: method=`{method}`, password={pwd}>'.format(
-            method=method_check,
-            pwd=password_check, )
+        return f'<{self.__class__.__name__}: method=`{method_check}`, ' \
+               f'using-password={password_check}>'
