@@ -46,15 +46,12 @@ class Locker:
 
     # todo: improve documentation
 
-    def __init__(self, file_path, **kwargs):
+    def __init__(self, file_path):
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
             raise FileNotFoundError('No such file {} found.'.format(file_path))
-
-        if kwargs:
-            self.password = kwargs['password']
-        
+       
         self._salt = None
         self.password_hash = None
         self._flag = None
