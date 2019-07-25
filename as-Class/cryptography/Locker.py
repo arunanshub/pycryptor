@@ -232,7 +232,8 @@ class Locker:
 
             if remove:
                 os.remove(self.file_path)
-
+            
+            return self
         except Exception as err:
             raise err
 
