@@ -59,11 +59,20 @@ class Locker:
     def __setattr__(self, name, value):
         if name != 'password':
             if self.__dict__.get('password_hash'):
-                raise AttributeError('Attribute cannot be set when password is present.')
+                raise AttributeError('Attribute cannot be set when '
+                                     'password is present.')
+            
+            elif name == 'EXT':
+                if re.search('[\s]', value):
+                    raise ValueError("Extension '{}' is invalid.".format(value))
+                else: object.__setattr__(self, name, value)
+            
             else:
                 object.__setattr__(self, name, value)
+        
         else:
-            # to prevent AttributeError
+            # to prevent AttributeError caused while
+            # changing password.
             if self.__dict__.get('password_hash'):
                 del self.password_hash
             object.__setattr__(self, name, value)
