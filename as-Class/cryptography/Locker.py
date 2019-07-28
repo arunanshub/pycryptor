@@ -27,7 +27,7 @@
 # SOFTWARE.
 # =============================================================================
 
-
+import re
 import hashlib
 import os
 import stat
