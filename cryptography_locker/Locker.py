@@ -40,8 +40,6 @@ NONCE_SIZE = 12
 SALT_LEN = 32
 BLOCK_SIZE = 64 * 1024
 
-EXT = '.0DAY'
-
 
 def _writer(file_path, new_file, method, flag, **kwargs):
     """Facilitates reading/writing to file.
@@ -118,7 +116,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                                   nonce, salt))
 
 
-def locker(file_path, password, remove=True):
+def locker(file_path, password, remove=True, **kwargs):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
     Encryption or decryption depends upon the file's extension.
@@ -136,10 +134,17 @@ def locker(file_path, password, remove=True):
                 encrypted or decrypted will be removed.
                 (Default: True).
     """
-
+    
+    if kwargs:
+        ext = kwargs['ext']
+        if re.search('[\s]', ext):
+            raise ValueError("Extension '{}' is invalid.".format(ext))
+    else:
+        ext = '.0DAY'
+    
     # The file is being decrypted
     try:
-        if file_path.endswith(EXT):
+        if file_path.endswith(ext
             method = 'decrypt'
             flag = False
             new_file = os.path.splitext(file_path)[0]
@@ -161,7 +166,7 @@ def locker(file_path, password, remove=True):
         else:
             method = 'encrypt'
             flag = True
-            new_file = file_path + EXT
+            new_file = file_path + ext
 
             salt = os.urandom(SALT_LEN)
             nonce = os.urandom(NONCE_SIZE)
