@@ -26,7 +26,7 @@
 # SOFTWARE.
 # =============================================================================
 
-
+import re
 import os
 import stat
 import hashlib
@@ -47,22 +47,16 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     *new_file* with the provided method by looping through each line
     of the file_path of fixed length, specified by BLOCK_SIZE in global
     namespace.
-
       Usage
      -------
     file_path = File to be written on.
-
      new_file = Name of the encrypted/decrypted file to written upon.
-
       method = The way in which the file must be overwritten.
                (encrypt or decrypt)
-
         flag = This is to identify if the method being used is
                for encryption or decryption.
-
                If the *flag* is *True* then the *nonce* value
                is written to the end of the *new_file*.
-
                If the *flag* is *False*, then the *nonce* is written to
                *file_path*.
     """
@@ -122,14 +116,10 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-
-
       Usage
      -------
      file_path = File to be written on.
-
      password = Key to be used for encryption/decryption.
-
        remove = If set to True, the the file that is being
                 encrypted or decrypted will be removed.
                 (Default: True).
@@ -144,7 +134,7 @@ def locker(file_path, password, remove=True, **kwargs):
     
     # The file is being decrypted
     try:
-        if file_path.endswith(ext
+        if file_path.endswith(ext):
             method = 'decrypt'
             flag = False
             new_file = os.path.splitext(file_path)[0]
