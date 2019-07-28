@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# locker v3.2
+# locker v3.3
 #
 # =============================================================================
 # MIT License
@@ -26,11 +26,13 @@
 # SOFTWARE.
 # =============================================================================
 
+import re
 import hashlib
 import os
 import stat
+import functools
 
-from struct import pack, unpack, calcsize
+from struct import pack, unpack
 from Cryptodome.Cipher import AES
 
 NONCE_SIZE = 12
@@ -108,9 +110,9 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                                                       MAC_LEN, 
                                                       SALT_LEN),
                                   nonce, mac_val, salt))
+                
 
-
-def locker(file_path, password, remove=True):
+def locker(file_path, password, remove=True, **kwargs):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
     Encryption or decryption depends upon the file's extension.
@@ -126,20 +128,26 @@ def locker(file_path, password, remove=True):
    -------
    file_path = File to be written on.
 
-    password = Key to be used for encryption/decryption.
-               - Raises DataDecryptionError if *Password* is incorrect
-                 or Encrypted data has been tampered with.
+   password = Key to be used for encryption/decryption.
+              - Raises DataDecryptionError if *Password* is incorrect
+                or Encrypted data has been tampered with.
 
-      remove = If set to True, the the file that is being
-               encrypted or decrypted will be removed.
-               (Default: True).
-    """
-
+     remove = If set to True, the the file that is being
+              encrypted or decrypted will be removed.
+              (Default: True).
+  """
+    if kwargs:
+        ext = kwargs['ext']
+        if re.search('[\s]', ext):
+            raise ValueError("Extension '{}' is invalid.".format(ext))
+    else:
+        ext = '.0DAY'
+    
     try:
 
         # The file is being decrypted
 
-        if file_path.endswith(EXT):
+        if file_path.endswith(ext):
             method = 'decrypt'
             flag = False
 
@@ -169,7 +177,7 @@ def locker(file_path, password, remove=True):
 
             method = 'encrypt'
             flag = True
-            new_file = file_path + EXT
+            new_file = file_path + ext
 
             # Generate a *nonce* and set the mac to None,
             # As the *mac* ***will not be received*** this time
@@ -180,7 +188,7 @@ def locker(file_path, password, remove=True):
             salt = os.urandom(SALT_LEN)
             mac = None
 
-        key = hashlib.pbkdf2_hmac('sha512', password, salt, 50000, 32)
+        key = hashlib.pbkdf2_hmac('sha512', password, salt, 20000, 32)
 
         # ============ CIPHER GENERATION PORTION ===============
         # A cipher object will take care of the all
@@ -220,8 +228,8 @@ def locker(file_path, password, remove=True):
 
                 os.remove(new_file)
 
-                raise DecryptionError("Invalid password or "
-                                      "tampered data.")
+                raise DecryptionError("Invalid password " 
+                                      "or tampered data.")
 
         # =======================================================
 
