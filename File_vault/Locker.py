@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# locker v3.3
+# Locker v4.0 (follows new protocol)
+# Implemented as function
 #
 # =============================================================================
 # MIT License
@@ -26,218 +27,149 @@
 # SOFTWARE.
 # =============================================================================
 
-import re
 import hashlib
 import os
 import stat
-import functools
-
+import string
 from struct import pack, unpack
-from Cryptodome.Cipher import AES
 
-NONCE_SIZE = 12
-SALT_LEN = 32
-MAC_LEN = 16
-BLOCK_SIZE = 64 * 1024
-EXT = '.0DAY'
+from functools import lru_cache
+from Cryptodome.Cipher import AES
 
 
 class DecryptionError(ValueError):
     pass
 
 
+@lru_cache(maxsize=None)
 def _writer(file_path, new_file, method, flag, **kwargs):
-    """Facilitates file writing
-    This function takes care of reading from the file - *file_path*
-    and writing to the new file - *new_file* with the provided method by
-    looping through each line of the file_path of fixed length, specified by
-    BLOCK_SIZE in global namespace.
-  
-        Usage
-       -------
+    """Facilitates reading/writing to file.
+    This function facilitates reading from *file_path* and writing to
+    *new_file* with the provided method by looping through each line
+    of the file_path of fixed length, specified by *block_size*.
+
+      Usage
+     -------
+
     file_path = File to be written on.
 
      new_file = Name of the encrypted/decrypted file to written upon.
 
-       method = The way in which the file must be overwritten.
-                (encrypt or decrypt)
+      method = The way in which the file must be overwritten.
+               (encrypt or decrypt)
 
-         flag = This is to identify if the method being used is
-                for encryption or decryption.
-
-                 If the *flag* is *True* then the *nonce* value
-                 and a *mac* tag function are accepted.
-                 If the *flag* is *False*, *nonce* value and a
-                 previously read *mac* value are accepted.
+        flag = This is to identify if the method being used is
+               for encryption or decryption.
+               If the *flag* is *True* then the *nonce* value
+               is written to the end of the *new_file*.
+               If the *flag* is *False*, then the *nonce* is written to
+               *file_path*.
     """
 
-    if kwargs:
-        nonce = kwargs['nonce']
-        mac_func = kwargs['mac_function']
-        mac_val = kwargs['mac_value']
-        salt = kwargs['salt']
+    salt = kwargs['salt']
+    nonce = kwargs['nonce']
+    mac_func = kwargs['mac_func']
+    block_size = kwargs['block_size']
 
     os.chmod(file_path, stat.S_IRWXU)
-    with open(file_path, 'rb+') as infile:
-        with open(new_file, 'wb+') as outfile:
-            while True:
-                part = infile.read(BLOCK_SIZE)
-                if not part:
-                    break
-                new = method(part)
-                outfile.write(new)
-
-            # If the file is being encrypted, generate and
-            # write the *mac* tag and *nonce* value to the *new_file*.
-
+    with open(file_path, 'rb') as fin:
+        with open(new_file, 'wb+') as fout:
             if flag:
-                # Generating the *mac* tag after encryption.
-                derived_mac_val = mac_func()
-
-                nonce_mac = pack('<{}s{}s{}s'.format(NONCE_SIZE, 
-                                                     MAC_LEN, 
-                                                     SALT_LEN),
-                                 nonce, derived_mac_val, salt)
-                outfile.write(nonce_mac)
-
-            # If the file is being decrypted, put the *nonce*
-            # and received *mac* value back into the file to
-            # restore the previous condition of the encrypted file.
+                # Create a placeholder for writing the *mac*.
+                # and append *nonce* and *salt* before encryption.
+                plh_nonce_salt = pack('16s12s32s',
+                                      b'0' * 16, nonce, salt)
+                fout.write(plh_nonce_salt)
 
             else:
-                infile.seek(0, 2)
-                infile.write(pack('<{}s{}s{}s'.format(NONCE_SIZE, 
-                                                      MAC_LEN, 
-                                                      SALT_LEN),
-                                  nonce, mac_val, salt))
-                
+                # Moving ahead towards the encrypted data.
+                fin.seek(16 + 12 + 32)
 
+            # Loop through the *fin*, generate encrypted data
+            # and write it to *fout*.
+            while True:
+                part = fin.read(block_size)
+                if not part:
+                    break
+                fout.write(method(part))
+
+            if flag:
+                fout.seek(0)
+                fout.write(mac_func())
+
+
+@lru_cache(maxsize=None)
 def locker(file_path, password, remove=True, **kwargs):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-  
-    Added:
-        After the *file_path* decryption, decrypted file's verification
-        is done. If it fails, either the Password is incorrect or the
-        encrypted data was supposedly tampered with.
 
-    Usage
-   -------
-   file_path = File to be written on.
+      Usage
+     -------
 
-   password = Key to be used for encryption/decryption.
-              - Raises DataDecryptionError if *Password* is incorrect
-                or Encrypted data has been tampered with.
+     file_path = File to be written on.
 
-     remove = If set to True, the the file that is being
-              encrypted or decrypted will be removed.
-              (Default: True).
-  """
+     password = Password to be used for encryption/decryption.
+
+       remove = If set to True, the the file that is being
+                encrypted or decrypted will be removed.
+                (Default: True).
+    """
+
     if kwargs:
-        ext = kwargs['ext']
-        if re.search('[\s]', ext):
-            raise ValueError("Extension '{}' is invalid.".format(ext))
+        block_size = kwargs.get('block_size', 64 * 1024)
+        ext = kwargs.get('ext', '.0DAY').strip(string.whitespace)
+        iterations = kwargs.get('iterations', 50000)
+        dklen = kwargs.get('dklen', 32)
     else:
+        block_size = 64 * 1024
         ext = '.0DAY'
-    
-    try:
+        iterations = 50000
+        dklen = 32
 
-        # The file is being decrypted
+    # The file is being decrypted.
+    if file_path.endswith(ext):
+        method = 'decrypt'
+        flag = False
+        new_file = os.path.splitext(file_path)[0]
 
-        if file_path.endswith(ext):
-            method = 'decrypt'
-            flag = False
+        # Retrieve the *nonce* and *salt*.
+        with open(file_path, 'rb') as f:
+            mac, nonce, salt = unpack('16s12s32s',
+                                      f.read(16 + 12 + 32))
 
-            # Read the *nonce* and *mac* values.
-            # Please note that we are receiving the *nonce*
-            # and *mac* values.
+    # The file is being encrypted.
+    else:
+        method = 'encrypt'
+        flag = True
+        new_file = file_path + ext
+        nonce = os.urandom(12)
+        salt = os.urandom(32)
+        mac = None
 
-            with open(file_path, 'rb+') as f:
-                f.seek(-(NONCE_SIZE + MAC_LEN + SALT_LEN), 2)
-                (nonce, mac, salt) = unpack('<{}s{}s{}s'.format(NONCE_SIZE, 
-                                                                MAC_LEN, 
-                                                                SALT_LEN),
-                                            f.read())
+    # Create a *password_hash* and *cipher* with
+    # required method.
+    password_hash = hashlib.pbkdf2_hmac('sha512', password,
+                                        salt, iterations, dklen)
+    cipher_obj = AES.new(password_hash, AES.MODE_GCM,
+                         nonce=nonce)
+    crp = getattr(cipher_obj, method)
 
-            # Remove the *mac* and *nonce* from the encrypted file.
-            # If not removed, Incorrect decryption will occur.
+    _writer(file_path, new_file,
+            crp, flag,
+            nonce=nonce,
+            mac_func=cipher_obj.digest,
+            mac_val=mac,
+            salt=salt, block_size=block_size, )
 
-            orig_file_size = os.path.getsize(file_path) - (NONCE_SIZE + 
-                                                           MAC_LEN + 
-                                                           SALT_LEN)
-            os.truncate(file_path, orig_file_size)
-            new_file = os.path.splitext(file_path)[0]
+    if not flag:
+        try:
+            cipher_obj.verify(mac)
+        except ValueError:
+            os.remove(new_file)
+            raise DecryptionError('Invalid Password or tampered data.')
 
-        else:
-
-            # The file is being encrypted.
-
-            method = 'encrypt'
-            flag = True
-            new_file = file_path + ext
-
-            # Generate a *nonce* and set the mac to None,
-            # As the *mac* ***will not be received*** this time
-            # but it will be generated after encryption.
-            #
-            # Generation will take place in _writer(...)
-            nonce = os.urandom(NONCE_SIZE)
-            salt = os.urandom(SALT_LEN)
-            mac = None
-
-        key = hashlib.pbkdf2_hmac('sha512', password, salt, 20000, 32)
-
-        # ============ CIPHER GENERATION PORTION ===============
-        # A cipher object will take care of the all
-        # the required mac_tag and verification.
-        # AES-GCM-256 chosen for security and authentication
-
-        cipher_obj = AES.new(key, AES.MODE_GCM, nonce)
-        crp = getattr(cipher_obj, method)
-        mac_func = getattr(cipher_obj, 'digest')
-        verifier = getattr(cipher_obj, 'verify')
-
-        # =============== FILE WRITING PORTION =================
-        # Read from the *file_path* and,
-        # write to the *new_file* using _writer defined above.
-
-        _writer(file_path,
-                new_file,
-                crp,
-                flag,
-                nonce=nonce,
-                mac_function=mac_func,
-                mac_value=mac,
-                salt=salt, )
-
-        # =============== VERIFICATION PORTION ==================
-        # Verify the file for integrity if the
-        # current file is being decrypted.
-
-        if not flag:
-            try:
-                verifier(mac)
-
-            except ValueError:
-
-                # Remove the incorrectly decrypted file
-                # and raise DataDecryptionError.
-
-                os.remove(new_file)
-
-                raise DecryptionError("Invalid password " 
-                                      "or tampered data.")
-
-        # =======================================================
-
-        # If remove set to True, delete the file
-        # that is being worked upon.
-
-        if remove:
-            os.remove(file_path)
-
-    except Exception as err:
-        raise err
+    if remove:
+        os.remove(file_path)
