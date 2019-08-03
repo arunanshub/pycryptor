@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# locker v3.3
+# Locker v4.0 (follows new protocol)
+# Implemented as class
 #
 # =============================================================================
 # MIT License
@@ -39,134 +40,103 @@ class DecryptionError(ValueError):
 
 
 class Locker:
-    NONCE_SIZE = 12
-    SALT_LEN = 32
-    MAC_LEN = 16
-    BLOCK_SIZE = 64 * 1024
-    EXT = '.0DAY'
 
-    # todo: improve documentation
+    ext = '.0DAY'
+    block_size = 64 * 1024
+    nonce_len = 12
+    mac_len = 16
+    salt_len = 32
+    iterations = 50000
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
-            raise FileNotFoundError('No such file {} found.'.format(file_path))
+            raise FileNotFoundError('Cannot find file')
 
         self._salt = None
         self.password_hash = None
         self._flag = None
-            
-    def __setattr__(self, name, value):
-        if name != 'password':
-            if self.__dict__.get('password_hash'):
-                raise AttributeError('Attribute cannot be set when '
-                                     'password is present.')
-            
-            elif name == 'EXT':
-                if re.search('[\s]', value):
-                    raise ValueError("Extension '{}' is invalid.".format(value))
-                else: object.__setattr__(self, name, value)
-            
-            else:
-                object.__setattr__(self, name, value)
-        
-        else:
-            # to prevent AttributeError caused while
-            # changing password.
-            if self.__dict__.get('password_hash'):
-                del self.password_hash
-            object.__setattr__(self, name, value)
-    
+        self._mac = None
+        self._nonce = None
+
     @property
     def password(self):
-        raise AttributeError('password Attribute is not readable.')
+        raise AttributeError('Not readable')
 
     @password.setter
     def password(self, password):
-        
-        if len(password) < 8:
-            raise ValueError(f'password must be longer than 8 bytes.')
-        
-        if not self.file_path.endswith(self.EXT):
+        if not self.file_path.endswith(self.ext):
             self._salt = os.urandom(32)
+            self._nonce = os.urandom(12)
+            self._mac = None
             self._flag = True
-        
+
         else:
-            with open(self.file_path, 'rb') as f:
-                f.seek(-self.SALT_LEN, 2)
-                self._salt = f.read()
-                self._flag = False
-        self.password_hash = hashlib.pbkdf2_hmac('sha512',
-                                                 password,
+            self._flag = False
+            with open(self.file_path, 'rb') as file:
+                self._mac, self._nonce, self._salt = unpack('16s12s32s',
+                                                            file.read(16 +
+                                                                      12 + 32))
+
+        self.password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                                  self._salt,
-                                                 50000,
-                                                 32)
-        
+                                                 self.iterations, 32)
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
-        """Facilitates file writing
-        This function takes care of reading from the file - *file_path*
-        and writing to the new file - *new_file* with the provided method by
-        looping through each line of the file_path of fixed length, specified by
-        BLOCK_SIZE in global namespace.
-            Usage
-           -------
+        """Facilitates reading/writing to file.
+        This function facilitates reading from *file_path* and writing to
+        *new_file* with the provided method by looping through each line
+        of the file_path of fixed length, specified by *block_size*.
+
+          Usage
+         -------
+
         file_path = File to be written on.
-         
+
          new_file = Name of the encrypted/decrypted file to written upon.
-           
-           method = The way in which the file must be overwritten.
-                    (encrypt or decrypt)
-             
-             flag = This is to identify if the method being used is
-                    for encryption or decryption.
-                     If the *flag* is *True* then the *nonce* value
-                     and a *mac* tag function are accepted.
-                     If the *flag* is *False*, *nonce* value and a
-                     previously read *mac* value are accepted.
+
+          method = The way in which the file must be overwritten.
+                   (encrypt or decrypt)
+
+            flag = This is to identify if the method being used is
+                   for encryption or decryption.
+                   If the *flag* is *True* then the *nonce* value
+                   is written to the end of the *new_file*.
+                   If the *flag* is *False*, then the *nonce* is written to
+                   *file_path*.
         """
 
-        if kwargs:
-            nonce = kwargs['nonce']
-            mac_func = kwargs['mac_function']
-            mac_val = kwargs['mac_value']
-            salt = kwargs['salt']
+        salt = kwargs['salt']
+        nonce = kwargs['nonce']
+        mac_func = kwargs['mac_func']
 
         os.chmod(file_path, stat.S_IRWXU)
-        with open(file_path, 'rb+') as infile:
-            with open(new_file, 'wb+') as outfile:
-                while True:
-                    part = infile.read(cls.BLOCK_SIZE)
-                    if not part:
-                        break
-                    new = method(part)
-                    outfile.write(new)
-
-                # If the file is being encrypted, generate and
-                # write the *mac* tag and *nonce* value to the *new_file*.
-
+        with open(file_path, 'rb') as fin:
+            with open(new_file, 'wb+') as fout:
                 if flag:
-                    # Generating the *mac* tag after encryption.
-                    derived_mac_val = mac_func()
-
-                    nonce_mac = pack('<{}s{}s{}s'.format(cls.NONCE_SIZE,
-                                                         cls.MAC_LEN,
-                                                         cls.SALT_LEN),
-                                     nonce, derived_mac_val, salt)
-                    outfile.write(nonce_mac)
-
-                # If the file is being decrypted, put the *nonce*
-                # and received *mac* value back into the file to
-                # restore the previous condition of the encrypted file.
+                    # Create a placeholder for writing the *mac*.
+                    # and append *nonce* and *salt* before encryption.
+                    plh_nonce_salt = pack('16s12s32s',
+                                          b'0' * 16, nonce, salt)
+                    fout.write(plh_nonce_salt)
 
                 else:
-                    infile.seek(0, 2)
-                    infile.write(pack('<{}s{}s{}s'.format(cls.NONCE_SIZE,
-                                                          cls.MAC_LEN,
-                                                          cls.SALT_LEN),
-                                      nonce, mac_val, salt))
+                    # Moving ahead towards the encrypted data.
+                    fin.seek(cls.mac_len + cls.nonce_len + cls.salt_len)
+
+                # Loop through the *fin*, generate encrypted data
+                # and write it to *fout*.
+                while True:
+                    part = fin.read(cls.block_size)
+                    if not part:
+                        break
+                    fout.write(method(part))
+
+                if flag:
+                    fout.seek(0)
+                    fout.write(mac_func())
 
     def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
@@ -174,124 +144,43 @@ class Locker:
         Encryption or decryption depends upon the file's extension.
         The user's encryption or decryption task is almost automated since
         *encryption* or *decryption* is determined by the file's extension.
-        Added:
-            After the *file_path* decryption, decrypted file's verification
-            is done. If it fails, either the Password is incorrect or the
-            encrypted data was supposedly tampered with.
-        Usage
-       -------
-        
-        remove = If set to True, the the file that is being
-                  encrypted or decrypted will be removed.
-                  (Default: True).
-      """
 
-        try:
+           Usage
+          -------
 
-            # The file is being decrypted
+            remove = If set to True, the the file that is being
+                     encrypted or decrypted will be removed.
+                     (Default: True).
+        """
 
-            if not self._flag:
-                method = 'decrypt'
-                flag = False
+        # The file is being encrypted.
+        if self._flag:
+            method = 'encrypt'
+            new_file = self.file_path + self.ext
 
-                # Read the *nonce* and *mac* values.
-                # Please note that we are receiving the *nonce*
-                # and *mac* values.
-
-                with open(self.file_path, 'rb+') as f:
-                    f.seek(-(self.NONCE_SIZE + self.MAC_LEN + self.SALT_LEN), 2)
-                    (nonce, mac, _) = unpack('<{}s{}s{}s'.format(self.NONCE_SIZE,
-                                                                 self.MAC_LEN,
-                                                                 self.SALT_LEN),
-                                             f.read())
-
-                # Remove the *mac* and *nonce* from the encrypted file.
-                # If not removed, Incorrect decryption will occur.
-
-                orig_file_size = os.path.getsize(self.file_path) - \
-                                                        (self.NONCE_SIZE + 
-                                                        self.MAC_LEN + 
-                                                        self.SALT_LEN)
-                
-                os.truncate(self.file_path, orig_file_size)
-                new_file = os.path.splitext(self.file_path)[0]
-
-            else:
-
-                # The file is being encrypted.
-
-                method = 'encrypt'
-                flag = True
-                new_file = self.file_path + self.EXT
-
-                # Generate a *nonce* and set the mac to None,
-                # As the *mac* ***will not be received*** this time
-                # but it will be generated after encryption.
-                #
-                # Generation will take place in _writer(...)
-                nonce = os.urandom(self.NONCE_SIZE)
-                mac = None
-
-            # ================= CIPHER GENERATION PORTION ============
-            # A cipher object will take care of the all
-            # the required mac_tag and verification.
-            # AES-GCM-256 chosen for security and authentication
-
-            cipher_obj = AES.new(self.password_hash, AES.MODE_GCM, nonce)
-            crp = getattr(cipher_obj, method)
-            mac_func = getattr(cipher_obj, 'digest')
-            verifier = getattr(cipher_obj, 'verify')
-
-            # ================= FILE WRITING PORTION =================
-            # Read from the *file_path* and,
-            # write to the *new_file* using _writer defined above.
-
-            self._writer(self.file_path,
-                         new_file,
-                         crp,
-                         flag,
-                         nonce=nonce,
-                         mac_function=mac_func,
-                         mac_value=mac,
-                         salt=self._salt, )
-
-            # ================= VERIFICATION PORTION =================
-            # Verify the file for integrity if the
-            # current file is being decrypted.
-
-            if not flag:
-                try:
-                    verifier(mac)
-
-                except ValueError:
-
-                    # Remove the incorrectly decrypted file
-                    # and raise DataDecryptionError.
-
-                    os.remove(new_file)
-
-                    raise DecryptionError("Invalid password or tampered data.")
-
-            # ========================================================
-
-            # If remove set to True, delete the file
-            # that is being worked upon.
-
-            
-        except Exception as err:
-            raise err
-        
+        # The file is being decrypted.
         else:
-            if remove:
-                os.remove(self.file_path)
-            
-            return self
+            method = 'decrypt'
+            new_file = os.path.splitext(self.file_path)[0]
 
-    def __repr__(self):
-        password_check = True if self.password_hash is not None else False
-        method_check = 'encrypt' if self._flag else 'not set' \
-                        if self._flag is None else 'decrypt'
+        # Create a *cipher* with required method.
+        cipher_obj = AES.new(self.password_hash, AES.MODE_GCM,
+                             nonce=self._nonce)
+        crp = getattr(cipher_obj, method)
 
-        return f'<{self.__class__.__name__}: method=`{method_check}`, ' \
-               f'using-password={password_check}>'
-     
+        self._writer(self.file_path, new_file,
+                     crp, self._flag,
+                     nonce=self._nonce,
+                     mac_func=cipher_obj.digest,
+                     mac_val=self._mac,
+                     salt=self._salt, )
+
+        if not self._flag:
+            try:
+                cipher_obj.verify(self._mac)
+            except ValueError:
+                os.remove(new_file)
+                raise DecryptionError('Invalid Password or tampered data.')
+
+        if remove:
+            os.remove(self.file_path)
