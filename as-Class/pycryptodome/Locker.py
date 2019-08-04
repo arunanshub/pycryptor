@@ -47,12 +47,13 @@ class Locker:
     mac_len = 16
     salt_len = 32
     iterations = 50000
+    dklen = 32
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
-            raise FileNotFoundError('Cannot find file')
+            raise FileNotFoundError(f"No such file '{file_path}' found.")
 
         self._salt = None
         self.password_hash = None
@@ -62,7 +63,7 @@ class Locker:
 
     @property
     def password(self):
-        raise AttributeError('Not readable')
+        raise AttributeError('password Attribute is not readable.')
 
     @password.setter
     def password(self, password):
@@ -81,7 +82,7 @@ class Locker:
 
         self.password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                                  self._salt,
-                                                 self.iterations, 32)
+                                                 self.iterations, self.dklen)
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
@@ -89,23 +90,23 @@ class Locker:
         This function facilitates reading from *file_path* and writing to
         *new_file* with the provided method by looping through each line
         of the file_path of fixed length, specified by *block_size*.
-
+          
           Usage
          -------
-
+        
         file_path = File to be written on.
-
+         
          new_file = Name of the encrypted/decrypted file to written upon.
-
-          method = The way in which the file must be overwritten.
-                   (encrypt or decrypt)
-
-            flag = This is to identify if the method being used is
-                   for encryption or decryption.
-                   If the *flag* is *True* then the *nonce* value
-                   is written to the end of the *new_file*.
-                   If the *flag* is *False*, then the *nonce* is written to
-                   *file_path*.
+          
+           method = The way in which the file must be overwritten.
+                    (encrypt or decrypt)
+            
+             flag = This is to identify if the method being used is
+                    for encryption or decryption.
+                    If the *flag* is *True* then the *nonce* value
+                    is written to the end of the *new_file*.
+                    If the *flag* is *False*, then the *nonce* is written to
+                    *file_path*.
         """
 
         salt = kwargs['salt']
@@ -144,10 +145,10 @@ class Locker:
         Encryption or decryption depends upon the file's extension.
         The user's encryption or decryption task is almost automated since
         *encryption* or *decryption* is determined by the file's extension.
-
+           
            Usage
           -------
-
+            
             remove = If set to True, the the file that is being
                      encrypted or decrypted will be removed.
                      (Default: True).
