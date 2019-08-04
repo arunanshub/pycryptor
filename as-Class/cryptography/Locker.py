@@ -53,7 +53,7 @@ class Locker:
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
-            raise FileNotFoundError('Cannot find file')
+            raise FileNotFoundError(f"No such file '{file_path}' found.")
 
         self._salt = None
         self.password_hash = None
@@ -62,7 +62,7 @@ class Locker:
 
     @property
     def password(self):
-        raise AttributeError('Not readable')
+        raise AttributeError('password Attribute is not readable.')
 
     @password.setter
     def password(self, password):
