@@ -117,17 +117,18 @@ class Locker:
                     # Append *nonce* and *salt* before encryption.
                     nonce_salt = pack('12s32s', nonce, salt)
                     fout.write(nonce_salt)
+                    block_size = cls.block_size
 
                 else:
                     # Moving ahead towards the encrypted data.
                     # Setting new block_size for reading encrypted data
                     fin.seek(cls.nonce_len + cls.salt_len)
-                    cls.block_size += 16
+                    block_size = cls.block_size + 16
 
                 # Loop through the *fin*, generate encrypted data
                 # and write it to *fout*.
                 while True:
-                    part = fin.read(cls.block_size)
+                    part = fin.read(block_size)
                     if not part:
                         break
                     fout.write(method(data=part))
