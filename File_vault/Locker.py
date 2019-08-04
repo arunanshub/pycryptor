@@ -41,7 +41,6 @@ class DecryptionError(ValueError):
     pass
 
 
-@lru_cache(maxsize=None)
 def _writer(file_path, new_file, method, flag, **kwargs):
     """Facilitates reading/writing to file.
     This function facilitates reading from *file_path* and writing to
@@ -98,7 +97,6 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                 fout.write(mac_func())
 
 
-@lru_cache(maxsize=None)
 def locker(file_path, password, remove=True, **kwargs):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
