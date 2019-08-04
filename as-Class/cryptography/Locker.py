@@ -15,8 +15,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -48,6 +48,7 @@ class Locker:
     nonce_len = 12
     salt_len = 32
     iterations = 50000
+    dklen = 32
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
@@ -80,7 +81,7 @@ class Locker:
         self.password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                                  self._salt,
                                                  self.iterations,
-                                                 32)
+                                                 self.dklen)
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
@@ -105,7 +106,7 @@ class Locker:
                     is written to the end of the *new_file*.
                     If the *flag* is *False*, then the *nonce* is written to
                     *file_path*.
-        """        
+        """
 
         salt = kwargs['salt']
         nonce = kwargs['nonce']
