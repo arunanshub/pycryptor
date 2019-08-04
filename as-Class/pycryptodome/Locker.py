@@ -15,8 +15,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -90,17 +90,17 @@ class Locker:
         This function facilitates reading from *file_path* and writing to
         *new_file* with the provided method by looping through each line
         of the file_path of fixed length, specified by *block_size*.
-          
+
           Usage
          -------
-        
+
         file_path = File to be written on.
-         
+
          new_file = Name of the encrypted/decrypted file to written upon.
-          
+
            method = The way in which the file must be overwritten.
                     (encrypt or decrypt)
-            
+
              flag = This is to identify if the method being used is
                     for encryption or decryption.
                     If the *flag* is *True* then the *nonce* value
@@ -145,10 +145,10 @@ class Locker:
         Encryption or decryption depends upon the file's extension.
         The user's encryption or decryption task is almost automated since
         *encryption* or *decryption* is determined by the file's extension.
-           
+
            Usage
           -------
-            
+
             remove = If set to True, the the file that is being
                      encrypted or decrypted will be removed.
                      (Default: True).
