@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Same Locker, but uses cryptography module instead...
+# Locker v4.0 (follows new protocol)
 # Implemented as class
 #
 # =============================================================================
@@ -15,8 +15,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,55 +27,39 @@
 # SOFTWARE.
 # =============================================================================
 
-import re
 import hashlib
 import os
 import stat
-from functools import partial
 from struct import pack, unpack
+from functools import partial
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
-class Locker:
-    NONCE_SIZE = 12
-    SALT_LEN = 32
-    BLOCK_SIZE = 64 * 1024
-    EXT = '.0DAY'
+class DecryptionError(ValueError):
+    pass
 
-    # todo: improve documentation
+
+class Locker:
+
+    ext = '.0DAY'
+    block_size = 64 * 1024
+    nonce_len = 12
+    salt_len = 32
+    iterations = 50000
+    dklen = 32
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
             self.file_path = file_path
         else:
-            raise FileNotFoundError('No such file {} found.'.format(file_path))
-       
+            raise FileNotFoundError(f"No such file '{file_path}' found.")
+
         self._salt = None
         self.password_hash = None
         self._flag = None
-
-    def __setattr__(self, name, value):
-        if name != 'password':
-            if self.__dict__.get('password_hash'):
-                raise AttributeError('Attribute cannot be set when '
-                                     'password is present.')
-            
-            elif name == 'EXT':
-                if re.search('[\s]', value):
-                    raise ValueError("Extension '{}' is invalid.".format(value))
-                else: object.__setattr__(self, name, value)
-            
-            else:
-                object.__setattr__(self, name, value)
-        
-        else:
-            # to prevent AttributeError caused while
-            # changing password.
-            if self.__dict__.get('password_hash'):
-                del self.password_hash
-            object.__setattr__(self, name, value)
+        self._nonce = None
 
     @property
     def password(self):
@@ -83,98 +67,72 @@ class Locker:
 
     @password.setter
     def password(self, password):
-        
-        if len(password) < 8:
-            raise ValueError(f'password must be longer than 8 bytes.')
-        
-        if not self.file_path.endswith(self.EXT):
+        if not self.file_path.endswith(self.ext):
             self._salt = os.urandom(32)
+            self._nonce = os.urandom(12)
             self._flag = True
-        
-        else:
-            with open(self.file_path, 'rb') as f:
-                f.seek(-self.SALT_LEN, 2)
-                self._salt = f.read()
-                self._flag = False
-        self.password_hash = hashlib.pbkdf2_hmac('sha512',
-                                                 password,
-                                                 self._salt,
-                                                 50000,
-                                                 32)
 
+        else:
+            self._flag = False
+            with open(self.file_path, 'rb') as file:
+                self._nonce, self._salt = unpack('12s32s',
+                                                 file.read(12 + 32))
+
+        self.password_hash = hashlib.pbkdf2_hmac('sha512', password,
+                                                 self._salt,
+                                                 self.iterations,
+                                                 self.dklen)
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
         """Facilitates reading/writing to file.
         This function facilitates reading from *file_path* and writing to
         *new_file* with the provided method by looping through each line
-        of the file_path of fixed length, specified by BLOCK_SIZE in global
-        namespace.
+        of the file_path of fixed length, specified by *block_size*.
 
           Usage
          -------
+
         file_path = File to be written on.
 
          new_file = Name of the encrypted/decrypted file to written upon.
 
-          method = The way in which the file must be overwritten.
-                   (encrypt or decrypt)
+           method = The way in which the file must be overwritten.
+                    (encrypt or decrypt)
 
-            flag = This is to identify if the method being used is
-                   for encryption or decryption.
-
-                   If the *flag* is *True* then the *nonce* value
-                   is written to the end of the *new_file*.
-
-                   If the *flag* is *False*, then the *nonce* is written to
-                   *file_path*.
+             flag = This is to identify if the method being used is
+                    for encryption or decryption.
+                    If the *flag* is *True* then the *nonce* value
+                    is written to the end of the *new_file*.
+                    If the *flag* is *False*, then the *nonce* is written to
+                    *file_path*.
         """
 
-        if kwargs:
-            nonce = kwargs['nonce']
-            salt = kwargs['salt']
-
-        if not flag:
-            # Setting new BLOCK_SIZE for reading encrypted data
-            cls.BLOCK_SIZE += 16
+        salt = kwargs['salt']
+        nonce = kwargs['nonce']
 
         os.chmod(file_path, stat.S_IRWXU)
-        with open(file_path, 'rb+') as infile:
-            with open(new_file, 'wb+') as outfile:
-                # Loop through the *infile*, generate encrypted data
-                # and write it to *outfile*.
-                try:
-                    while True:
-                        part = infile.read(cls.BLOCK_SIZE)
-                        if not part:
-                            break
-                        new_data = method(data=part)
-                        outfile.write(new_data)
-
-                except InvalidTag as err:
-                    infile.seek(0, 2)
-                    infile.write(pack('<{}s{}s'.format(cls.NONCE_SIZE,
-                                                       cls.SALT_LEN),
-                                      nonce, salt))
-
-                    # Reset the BLOCK_SIZE to original value
-                    raise err
-
-                # Write the nonce into the *new_file* for future use.
-
+        with open(file_path, 'rb') as fin:
+            with open(new_file, 'wb+') as fout:
                 if flag:
-                    outfile.write(pack('<{}s{}s'.format(cls.NONCE_SIZE,
-                                                        cls.SALT_LEN),
-                                       nonce, salt))
-
-                # Write the nonce to the *file_path* to restore the
-                # original file condition
+                    # Append *nonce* and *salt* before encryption.
+                    nonce_salt = pack('12s32s', nonce, salt)
+                    fout.write(nonce_salt)
+                    block_size = cls.block_size
 
                 else:
-                    infile.seek(0, 2)
-                    infile.write(pack('<{}s{}s'.format(cls.NONCE_SIZE,
-                                                       cls.SALT_LEN),
-                                      nonce, salt))
+                    # Moving ahead towards the encrypted data.
+                    # Setting new block_size for reading encrypted data
+                    fin.seek(cls.nonce_len + cls.salt_len)
+                    block_size = cls.block_size + 16
+
+                # Loop through the *fin*, generate encrypted data
+                # and write it to *fout*.
+                while True:
+                    part = fin.read(block_size)
+                    if not part:
+                        break
+                    fout.write(method(data=part))
 
     def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
@@ -183,73 +141,36 @@ class Locker:
         The user's encryption or decryption task is almost automated since
         *encryption* or *decryption* is determined by the file's extension.
 
-
           Usage
          -------
-           
+
           remove = If set to True, the the file that is being
                    encrypted or decrypted will be removed.
                    (Default: True).
         """
 
-        # The file is being decrypted
+        # The file is being encrypted.
+        if self._flag:
+            method = 'encrypt'
+            new_file = self.file_path + self.ext
+
+        # The file is being encrypted.
+        else:
+            method = 'decrypt'
+            new_file = os.path.splitext(self.file_path)[0]
+
+        # Create a *cipher* with required method.
+        cipher_obj = getattr(AESGCM(self.password_hash), method)
+        crp = partial(cipher_obj, nonce=self._nonce, associated_data=None)
+
         try:
-            if not self._flag:
-                method = 'decrypt'
-                new_file = os.path.splitext(self.file_path)[0]
+            self._writer(self.file_path, new_file,
+                         crp, self._flag,
+                         nonce=self._nonce,
+                         salt=self._salt, )
+        except InvalidTag:
+            os.remove(new_file)
+            raise DecryptionError('Invalid Password or tampered data.')
 
-                # Retrieve the nonce and remove it from the
-                # encrypted file
-
-                with open(self.file_path, 'rb+') as f:
-                    f.seek(-(self.NONCE_SIZE + self.SALT_LEN), 2)
-                    nonce, _ = unpack('<{}s{}s'.format(self.NONCE_SIZE,
-                                                       self.SALT_LEN),
-                                      f.read())
-
-                orig_size = os.path.getsize(self.file_path) - (self.NONCE_SIZE +
-                                                               self.SALT_LEN)
-                os.truncate(self.file_path, orig_size)
-
-            # The file is being encrypted
-            else:
-                method = 'encrypt'
-                new_file = self.file_path + self.EXT
-
-                nonce = os.urandom(self.NONCE_SIZE)
-
-            # Create a cipher with the required method
-
-            key = self.password_hash
-            cipher = getattr(AESGCM(key), method)
-
-            # Create a partial function with default values.
-
-            crp = partial(cipher, nonce=nonce, associated_data=None)
-
-            # Read from *file_path* and write to the *new_file*
-            try:
-                Locker._writer(self.file_path,
-                               new_file,
-                               crp,
-                               self._flag,
-                               nonce=nonce,
-                               salt=self._salt, )
-            except InvalidTag:
-                os.remove(new_file)
-                raise InvalidTag('Invalid Password or tampered data.')
-
-            if remove:
-                os.remove(self.file_path)
-            
-            return self
-        except Exception as err:
-            raise err
-
-    def __repr__(self):
-        password_check = True if self.password_hash is not None else False
-        method_check = 'encrypt' if self._flag else 'not set' \
-                        if self._flag is None else 'decrypt'
-
-        return f'<{self.__class__.__name__}: method=`{method_check}`, ' \
-               f'using-password={password_check}>'
+        if remove:
+            os.remove(self.file_path)
