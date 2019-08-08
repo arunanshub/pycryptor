@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Same Locker, but uses cryptography module instead...
+# Locker v4.0 (follows new protocol)
+# Implemented as class
 #
 # =============================================================================
 # MIT License
@@ -14,8 +15,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -26,33 +27,37 @@
 # SOFTWARE.
 # =============================================================================
 
-import re
+import hashlib
 import os
 import stat
-import hashlib
-
+import string
 from struct import pack, unpack
-from functools import partial
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.exceptions import InvalidTag
+from functools import partial, lru_cache
 
-NONCE_SIZE = 12
-SALT_LEN = 32
-BLOCK_SIZE = 64 * 1024
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+
+class DecryptionError(ValueError):
+    pass
 
 
 def _writer(file_path, new_file, method, flag, **kwargs):
     """Facilitates reading/writing to file.
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each line
-    of the file_path of fixed length, specified by BLOCK_SIZE in global
-    namespace.
+    of the file_path of fixed length, specified by *block_size*.
+
       Usage
      -------
+
     file_path = File to be written on.
+
      new_file = Name of the encrypted/decrypted file to written upon.
+
       method = The way in which the file must be overwritten.
                (encrypt or decrypt)
+
         flag = This is to identify if the method being used is
                for encryption or decryption.
                If the *flag* is *True* then the *nonce* value
@@ -61,53 +66,31 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                *file_path*.
     """
 
-    if kwargs:
-        nonce = kwargs['nonce']
-        salt = kwargs['salt']
-
-    if not flag:
-        # Setting new BLOCK_SIZE for reading encrypted data
-        global BLOCK_SIZE
-        BLOCK_SIZE += 16
+    salt = kwargs['salt']
+    nonce = kwargs['nonce']
+    block_size = kwargs['block_size']
 
     os.chmod(file_path, stat.S_IRWXU)
-    with open(file_path, 'rb+') as infile:
-        with open(new_file, 'wb+') as outfile:
-            # Loop through the *infile*, generate encrypted data
-            # and write it to *outfile*.
-            try:
-                while True:
-                    part = infile.read(BLOCK_SIZE)
-                    if not part:
-                        break
-                    new_data = method(data=part)
-                    outfile.write(new_data)
-
-            except InvalidTag as err:
-                infile.seek(0, 2)
-                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, 
-                                                   SALT_LEN),
-                                  nonce, salt))
-
-                # Reset the BLOCK_SIZE to original value
-                BLOCK_SIZE -= 16
-                raise err
-
-            # Write the nonce into the *new_file* for future use.
-
+    with open(file_path, 'rb') as fin:
+        with open(new_file, 'wb+') as fout:
             if flag:
-                outfile.write(pack('<{}s{}s'.format(NONCE_SIZE, 
-                                                    SALT_LEN),
-                                   nonce, salt))
-
-            # Write the nonce to the *file_path* to restore the
-            # original file condition
+                # Append *nonce* and *salt* before encryption.
+                nonce_salt = pack('12s32s', nonce, salt)
+                fout.write(nonce_salt)
 
             else:
-                infile.seek(0, 2)
-                infile.write(pack('<{}s{}s'.format(NONCE_SIZE, 
-                                                   SALT_LEN),
-                                  nonce, salt))
+                # Moving ahead towards the encrypted data.
+                # Setting new block_size for reading encrypted data
+                fin.seek(12 + 32)
+                block_size += 16
+
+            # Loop through the *fin*, generate encrypted data
+            # and write it to *fout*.
+            while True:
+                part = fin.read(block_size)
+                if not part:
+                    break
+                fout.write(method(data=part))
 
 
 def locker(file_path, password, remove=True, **kwargs):
@@ -116,75 +99,64 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-      Usage
-     -------
+
+       Usage
+     ---------
+
      file_path = File to be written on.
-     password = Key to be used for encryption/decryption.
-       remove = If set to True, the the file that is being
-                encrypted or decrypted will be removed.
-                (Default: True).
+
+      password = Password to be used for encryption/decryption.
+
+        remove = If set to True, the the file that is being
+                 encrypted or decrypted will be removed.
+                 (Default: True).
     """
-    
+
     if kwargs:
-        ext = kwargs['ext']
-        if re.search('[\s]', ext):
-            raise ValueError("Extension '{}' is invalid.".format(ext))
+        block_size = kwargs.get('block_size', 64 * 1024)
+        ext = kwargs.get('ext', '.0DAY').strip(string.whitespace)
+        iterations = kwargs.get('iterations', 50000)
+        dklen = kwargs.get('dklen', 32)
     else:
+        block_size = 64 * 1024
         ext = '.0DAY'
-    
-    # The file is being decrypted
+        iterations = 50000
+        dklen = 32
+
+    # The file is being decrypted.
+    if file_path.endswith(ext):
+        method = 'decrypt'
+        flag = False
+        new_file = os.path.splitext(file_path)[0]
+
+        # Retrieve the *nonce* and *salt*.
+        with open(file_path, 'rb') as f:
+            nonce, salt = unpack('12s32s',
+                                 f.read(12 + 32))
+
+    # The file is being encrypted
+    else:
+        method = 'encrypt'
+        flag = True
+        new_file = file_path + ext
+        nonce = os.urandom(12)
+        salt = os.urandom(32)
+
+    # Create a *password_hash* and *cipher* with
+    # required method.
+    password_hash = hashlib.pbkdf2_hmac('sha512', password,
+                                        salt, iterations, dklen)
+    cipher_obj = getattr(AESGCM(password_hash), method)
+    crp = partial(cipher_obj, nonce=nonce, associated_data=None)
+
     try:
-        if file_path.endswith(ext):
-            method = 'decrypt'
-            flag = False
-            new_file = os.path.splitext(file_path)[0]
+        _writer(file_path, new_file,
+                crp, flag,
+                nonce=nonce, salt=salt,
+                block_size=block_size, )
+    except InvalidTag:
+        os.remove(new_file)
+        raise DecryptionError('Invalid Password or tampered data.')
 
-            # Retrieve the nonce and remove it from the
-            # encrypted file
-
-            with open(file_path, 'rb+') as f:
-                f.seek(-(NONCE_SIZE + SALT_LEN), 2)
-                nonce, salt = unpack('<{}s{}s'.format(NONCE_SIZE, 
-                                                      SALT_LEN), 
-                                     f.read())
-
-            orig_size = os.path.getsize(file_path) - (NONCE_SIZE + 
-                                                      SALT_LEN)
-            os.truncate(file_path, orig_size)
-
-        # The file is being encrypted
-        else:
-            method = 'encrypt'
-            flag = True
-            new_file = file_path + ext
-
-            salt = os.urandom(SALT_LEN)
-            nonce = os.urandom(NONCE_SIZE)
-
-        # Create a cipher with the required method
-
-        key = hashlib.pbkdf2_hmac('sha512', password, salt, 50000, 32)
-        cipher = getattr(AESGCM(key), method)
-
-        # Create a partial function with default values.
-
-        crp = partial(cipher, nonce=nonce, associated_data=None)
-
-        # Read from *file_path* and write to the *new_file*
-        try:
-            _writer(file_path,
-                    new_file,
-                    crp,
-                    flag,
-                    nonce=nonce,
-                    salt=salt, )
-        except InvalidTag as err:
-            os.remove(new_file)
-            raise InvalidTag("Invalid Password or "
-                             "tampered data.")
-
-        if remove:
-            os.remove(file_path)
-
-    except Exception as err:
-        raise err
+    if remove:
+        os.remove(file_path)
