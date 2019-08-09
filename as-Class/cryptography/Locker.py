@@ -61,6 +61,21 @@ class Locker:
         self._flag = None
         self._nonce = None
 
+    def __setattr__(self, name, value):
+        # Prevent changing any attribute after the password
+        # arrtibute is set.
+        if name != 'password':
+            if self.__dict__.get('password_hash'):
+                raise AttributeError(f"Cannot change '{name}' once password "
+                                     f"is set.")
+            else:
+                object.__setattr__(self, name, value)
+
+        # If user is changing password, let them do it.
+        else:
+            del self.password_hash
+            object.__setattr__(self, name, value)
+
     @property
     def password(self):
         raise AttributeError('password Attribute is not readable.')
