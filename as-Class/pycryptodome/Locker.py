@@ -203,3 +203,4 @@ class Locker:
             os.remove(self.file_path)
 
         return self
+
