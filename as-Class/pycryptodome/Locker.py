@@ -61,6 +61,21 @@ class Locker:
         self._mac = None
         self._nonce = None
 
+    def __setattr__(self, name, value):
+        # Prevent changing any attribute after the password
+        # arrtibute is set.
+        if name != 'password':
+            if self.__dict__.get('password_hash'):
+                raise AttributeError(f"Cannot change '{name}' once password "
+                                     f"is set.")
+            else:
+                object.__setattr__(self, name, value)
+
+        # If user is changing password, let them do it.
+        else:
+            del self.password_hash
+            object.__setattr__(self, name, value)
+
     @property
     def password(self):
         raise AttributeError('password Attribute is not readable.')
@@ -153,7 +168,8 @@ class Locker:
                      encrypted or decrypted will be removed.
                      (Default: True).
         """
-
+        if not self.password_hash:
+            raise ValueError("Password not provided.")
         # The file is being encrypted.
         if self._flag:
             method = 'encrypt'
@@ -185,3 +201,5 @@ class Locker:
 
         if remove:
             os.remove(self.file_path)
+
+        return self
