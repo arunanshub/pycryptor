@@ -15,8 +15,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -134,9 +134,9 @@ def locker(file_path, password, remove=True, **kwargs):
         new_file = os.path.splitext(file_path)[0]
 
         # Retrieve the *nonce* and *salt*.
-        with open(file_path, 'rb') as f:
+        with open(file_path, 'rb') as file:
             mac, nonce, salt = unpack('16s12s32s',
-                                      f.read(16 + 12 + 32))
+                                      file.read(16 + 12 + 32))
 
     # The file is being encrypted.
     else:
