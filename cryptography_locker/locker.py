@@ -130,9 +130,9 @@ def locker(file_path, password, remove=True, **kwargs):
         new_file = os.path.splitext(file_path)[0]
 
         # Retrieve the *nonce* and *salt*.
-        with open(file_path, 'rb') as f:
+        with open(file_path, 'rb') as file:
             nonce, salt = unpack('12s32s',
-                                 f.read(12 + 32))
+                                 file.read(12 + 32))
 
     # The file is being encrypted
     else:
