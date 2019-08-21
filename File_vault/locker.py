@@ -118,16 +118,10 @@ def locker(file_path, password, remove=True, **kwargs):
                 (Default: True).
     """
 
-    if kwargs:
-        block_size = kwargs.get('block_size', 64 * 1024)
-        ext = kwargs.get('ext', '.0DAY')
-        iterations = kwargs.get('iterations', 50000)
-        dklen = kwargs.get('dklen', 32)
-    else:
-        block_size = 64 * 1024
-        ext = '.0DAY'
-        iterations = 50000
-        dklen = 32
+    block_size = kwargs.get('block_size', 64 * 1024)
+    ext = kwargs.get('ext', '.0DAY')
+    iterations = kwargs.get('iterations', 50000)
+    dklen = kwargs.get('dklen', 32)
 
     # The file is being decrypted.
     if file_path.endswith(ext):
@@ -141,6 +135,7 @@ def locker(file_path, password, remove=True, **kwargs):
             if not metadata == b'enc':
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
+
             mac, nonce, salt = unpack('16s12s32s',
                                       file.read(16 + 12 + 32))
 
