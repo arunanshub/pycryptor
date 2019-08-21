@@ -113,16 +113,10 @@ def locker(file_path, password, remove=True, **kwargs):
                  (Default: True).
     """
 
-    if kwargs:
-        block_size = kwargs.get('block_size', 64 * 1024)
-        ext = kwargs.get('ext', '.0DAY')
-        iterations = kwargs.get('iterations', 50000)
-        dklen = kwargs.get('dklen', 32)
-    else:
-        block_size = 64 * 1024
-        ext = '.0DAY'
-        iterations = 50000
-        dklen = 32
+    block_size = kwargs.get('block_size', 64 * 1024)
+    ext = kwargs.get('ext', '.0DAY')
+    iterations = kwargs.get('iterations', 50000)
+    dklen = kwargs.get('dklen', 32)
 
     # The file is being decrypted.
     if file_path.endswith(ext):
