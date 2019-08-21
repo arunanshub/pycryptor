@@ -30,9 +30,8 @@
 import hashlib
 import os
 import stat
-import string
+from functools import partial
 from struct import pack, unpack
-from functools import partial, lru_cache
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -55,15 +54,15 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
      new_file = Name of the encrypted/decrypted file to written upon.
 
-      method = The way in which the file must be overwritten.
-               (encrypt or decrypt)
+       method = The way in which the file must be overwritten.
+                (encrypt or decrypt)
 
-        flag = This is to identify if the method being used is
-               for encryption or decryption.
-               If the *flag* is *True* then the *nonce* value
-               is written to the end of the *new_file*.
-               If the *flag* is *False*, then the *nonce* is written to
-               *file_path*.
+         flag = This is to identify if the method being used is
+                for encryption or decryption.
+                If the *flag* is *True* then the *nonce* value
+                is written to the end of the *new_file*.
+                If the *flag* is *False*, then the *nonce* is written to
+                *file_path*.
     """
 
     salt = kwargs['salt']
@@ -71,26 +70,28 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     block_size = kwargs['block_size']
 
     os.chmod(file_path, stat.S_IRWXU)
-    with open(file_path, 'rb') as fin:
-        with open(new_file, 'wb+') as fout:
+    with open(file_path, 'rb') as infile:
+        with open(new_file, 'wb+') as outfile:
             if flag:
+
                 # Append *nonce* and *salt* before encryption.
-                nonce_salt = pack('12s32s', nonce, salt)
-                fout.write(nonce_salt)
+                nonce_salt = pack('3s12s32s', b'enc', nonce, salt)
+                outfile.write(nonce_salt)
 
             else:
+
                 # Moving ahead towards the encrypted data.
                 # Setting new block_size for reading encrypted data
-                fin.seek(12 + 32)
+                infile.seek(3 + 12 + 32)
                 block_size += 16
 
-            # Loop through the *fin*, generate encrypted data
-            # and write it to *fout*.
+            # Loop through the *infile*, generate encrypted data
+            # and write it to *outfile*.
             while True:
-                part = fin.read(block_size)
+                part = infile.read(block_size)
                 if not part:
                     break
-                fout.write(method(data=part))
+                outfile.write(method(data=part))
 
 
 def locker(file_path, password, remove=True, **kwargs):
@@ -114,7 +115,7 @@ def locker(file_path, password, remove=True, **kwargs):
 
     if kwargs:
         block_size = kwargs.get('block_size', 64 * 1024)
-        ext = kwargs.get('ext', '.0DAY').strip(string.whitespace)
+        ext = kwargs.get('ext', '.0DAY')
         iterations = kwargs.get('iterations', 50000)
         dklen = kwargs.get('dklen', 32)
     else:
@@ -129,8 +130,15 @@ def locker(file_path, password, remove=True, **kwargs):
         flag = False
         new_file = os.path.splitext(file_path)[0]
 
-        # Retrieve the *nonce* and *salt*.
         with open(file_path, 'rb') as file:
+
+            # Check if file is valid.
+            metadata = file.read(3)
+            if not metadata == b'enc':
+                raise RuntimeError("The file is not supported. "
+                                   "The file might be tampered.")
+
+            # Retrieve the *nonce* and *salt*.
             nonce, salt = unpack('12s32s',
                                  file.read(12 + 32))
 
@@ -156,7 +164,7 @@ def locker(file_path, password, remove=True, **kwargs):
                 block_size=block_size, )
     except InvalidTag:
         os.remove(new_file)
-        raise DecryptionError('Invalid Password or tampered data.')
+        raise DecryptionError('Invalid Password or tampered data.') from None
 
     if remove:
         os.remove(file_path)
