@@ -45,12 +45,17 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each line
     of the file_path of fixed length, specified by *block_size*.
+
       Usage
      -------
+
     file_path = File to be written on.
+
      new_file = Name of the encrypted/decrypted file to written upon.
+
        method = The way in which the file must be overwritten.
                 (encrypt or decrypt).
+
          flag = This is to identify if the method being used is
                 for encryption or decryption.
                 If the *flag* is *True* then the *nonce* value
@@ -100,25 +105,23 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
+
       Usage
      -------
+
      file_path = File to be written on.
+
      password = Password to be used for encryption/decryption.
+
        remove = If set to True, the the file that is being
                 encrypted or decrypted will be removed.
                 (Default: True).
     """
 
-    if kwargs:
-        block_size = kwargs.get('block_size', 64 * 1024)
-        ext = kwargs.get('ext', '.0DAY')
-        iterations = kwargs.get('iterations', 50000)
-        dklen = kwargs.get('dklen', 32)
-    else:
-        block_size = 64 * 1024
-        ext = '.0DAY'
-        iterations = 50000
-        dklen = 32
+    block_size = kwargs.get('block_size', 64 * 1024)
+    ext = kwargs.get('ext', '.0DAY')
+    iterations = kwargs.get('iterations', 50000)
+    dklen = kwargs.get('dklen', 32)
 
     # The file is being decrypted.
     if file_path.endswith(ext):
@@ -132,6 +135,7 @@ def locker(file_path, password, remove=True, **kwargs):
             if not metadata == b'enc':
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
+
             mac, nonce, salt = unpack('16s12s32s',
                                       file.read(16 + 12 + 32))
 
