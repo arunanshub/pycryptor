@@ -31,7 +31,6 @@
 import hashlib
 import os
 import stat
-import string
 from struct import pack, unpack
 
 from Cryptodome.Cipher import AES
@@ -54,15 +53,15 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
      new_file = Name of the encrypted/decrypted file to written upon.
 
-      method = The way in which the file must be overwritten.
-               (encrypt or decrypt)
+       method = The way in which the file must be overwritten.
+                (encrypt or decrypt).
 
-        flag = This is to identify if the method being used is
-               for encryption or decryption.
-               If the *flag* is *True* then the *nonce* value
-               is written to the end of the *new_file*.
-               If the *flag* is *False*, then the *nonce* is written to
-               *file_path*.
+         flag = This is to identify if the method being used is
+                for encryption or decryption.
+                If the *flag* is *True* then the *nonce* value
+                is written to the end of the *new_file*.
+                If the *flag* is *False*, then the *nonce* is written to
+                *file_path*.
     """
 
     salt = kwargs['salt']
@@ -121,7 +120,7 @@ def locker(file_path, password, remove=True, **kwargs):
 
     if kwargs:
         block_size = kwargs.get('block_size', 64 * 1024)
-        ext = kwargs.get('ext', '.0DAY').strip(string.whitespace)
+        ext = kwargs.get('ext', '.0DAY')
         iterations = kwargs.get('iterations', 50000)
         dklen = kwargs.get('dklen', 32)
     else:
@@ -174,8 +173,7 @@ def locker(file_path, password, remove=True, **kwargs):
             cipher_obj.verify(mac)
         except ValueError:
             os.remove(new_file)
-            raise DecryptionError('Invalid Password or tampered data.') \
-                from None
+            raise DecryptionError('Invalid Password or tampered data.') from None
 
     if remove:
         os.remove(file_path)
