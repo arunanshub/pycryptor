@@ -30,8 +30,8 @@
 import hashlib
 import os
 import stat
-from struct import pack, unpack
 from functools import partial
+from struct import pack, unpack
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -42,7 +42,6 @@ class DecryptionError(ValueError):
 
 
 class Locker:
-
     ext = '.0DAY'
     block_size = 64 * 1024
     nonce_len = 12
@@ -60,10 +59,12 @@ class Locker:
         self.password_hash = None
         self._flag = None
         self._nonce = None
+        self._valid = None
 
     def __setattr__(self, name, value):
+
         # Prevent changing any attribute after the password
-        # arrtibute is set.
+        # attribute is set.
         if name != 'password':
             if not self.__dict__.get('password_hash'):
                 object.__setattr__(self, name, value)
@@ -78,6 +79,7 @@ class Locker:
 
     @property
     def password(self):
+
         # password set here would be converted to *password_hash*.
         raise AttributeError('password Attribute is not readable.')
 
@@ -87,10 +89,18 @@ class Locker:
             self._salt = os.urandom(32)
             self._nonce = os.urandom(12)
             self._flag = True
+            self._valid = True
 
         else:
             self._flag = False
             with open(self.file_path, 'rb') as file:
+                metadata = file.read(3)
+
+                # Check for file validity.
+                if not metadata == b'enc':
+                    self._valid = False
+
+                # Retrieve the *nonce* and *salt*.
                 self._nonce, self._salt = unpack('12s32s',
                                                  file.read(12 + 32))
 
@@ -128,27 +138,29 @@ class Locker:
         nonce = kwargs['nonce']
 
         os.chmod(file_path, stat.S_IRWXU)
-        with open(file_path, 'rb') as fin:
-            with open(new_file, 'wb+') as fout:
+        with open(file_path, 'rb') as infile:
+            with open(new_file, 'wb+') as outfile:
                 if flag:
-                    # Append *nonce* and *salt* before encryption.
-                    nonce_salt = pack('12s32s', nonce, salt)
-                    fout.write(nonce_salt)
+
+                    # Append *metadata*, *nonce* and *salt* before encryption.
+                    nonce_salt = pack('3s12s32s', b'enc', nonce, salt)
+                    outfile.write(nonce_salt)
                     block_size = cls.block_size
 
                 else:
-                    # Moving ahead towards the encrypted data.
-                    # Setting new block_size for reading encrypted data
-                    fin.seek(cls.nonce_len + cls.salt_len)
+
+                    # Move ahead towards the encrypted data.
+                    # Set new block_size for reading encrypted data.
+                    infile.seek(cls.nonce_len + cls.salt_len)
                     block_size = cls.block_size + 16
 
-                # Loop through the *fin*, generate encrypted data
-                # and write it to *fout*.
+                # Loop through the *infile*, generate encrypted data
+                # and write it to *outfile*.
                 while True:
-                    part = fin.read(block_size)
+                    part = infile.read(block_size)
                     if not part:
                         break
-                    fout.write(method(data=part))
+                    outfile.write(method(data=part))
 
     def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
@@ -164,6 +176,15 @@ class Locker:
                    encrypted or decrypted will be removed.
                    (Default: True).
         """
+
+        # Check for password.
+        if not self.password_hash:
+            raise ValueError("Cannot decrypt file without a valid password.")
+
+        # Maintain file validity.
+        if not self._valid:
+            raise RuntimeError("The file is not supported. "
+                               "The file might be tampered.")
 
         # The file is being encrypted.
         if self._flag:
