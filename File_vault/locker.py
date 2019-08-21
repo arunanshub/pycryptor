@@ -27,13 +27,13 @@
 # SOFTWARE.
 # =============================================================================
 
+
 import hashlib
 import os
 import stat
 import string
 from struct import pack, unpack
 
-from functools import lru_cache
 from Cryptodome.Cipher import AES
 
 
@@ -71,30 +71,33 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     block_size = kwargs['block_size']
 
     os.chmod(file_path, stat.S_IRWXU)
-    with open(file_path, 'rb') as fin:
-        with open(new_file, 'wb+') as fout:
+    with open(file_path, 'rb') as infile:
+        with open(new_file, 'wb+') as outfile:
             if flag:
+
                 # Create a placeholder for writing the *mac*.
                 # and append *nonce* and *salt* before encryption.
-                plh_nonce_salt = pack('16s12s32s',
+                # Also, add a 3 Byte metadata indicating encrypted file.
+                plh_nonce_salt = pack('3s16s12s32s', b'enc',
                                       b'0' * 16, nonce, salt)
-                fout.write(plh_nonce_salt)
+                outfile.write(plh_nonce_salt)
 
             else:
-                # Moving ahead towards the encrypted data.
-                fin.seek(16 + 12 + 32)
 
-            # Loop through the *fin*, generate encrypted data
-            # and write it to *fout*.
+                # Moving ahead towards the encrypted data.
+                infile.seek(3 + 16 + 12 + 32)
+
+            # Loop through the *infile*, generate encrypted data
+            # and write it to *outfile*.
             while True:
-                part = fin.read(block_size)
+                part = infile.read(block_size)
                 if not part:
                     break
-                fout.write(method(part))
+                outfile.write(method(part))
 
             if flag:
-                fout.seek(0)
-                fout.write(mac_func())
+                outfile.seek(3)
+                outfile.write(mac_func())
 
 
 def locker(file_path, password, remove=True, **kwargs):
@@ -135,6 +138,10 @@ def locker(file_path, password, remove=True, **kwargs):
 
         # Retrieve the *nonce* and *salt*.
         with open(file_path, 'rb') as file:
+            metadata = file.read(3)
+            if not metadata == b'enc':
+                raise RuntimeError("The file is not supported. "
+                                   "The file might be tampered.")
             mac, nonce, salt = unpack('16s12s32s',
                                       file.read(16 + 12 + 32))
 
@@ -167,7 +174,8 @@ def locker(file_path, password, remove=True, **kwargs):
             cipher_obj.verify(mac)
         except ValueError:
             os.remove(new_file)
-            raise DecryptionError('Invalid Password or tampered data.')
+            raise DecryptionError('Invalid Password or tampered data.') \
+                from None
 
     if remove:
         os.remove(file_path)
