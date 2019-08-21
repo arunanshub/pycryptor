@@ -40,7 +40,6 @@ class DecryptionError(ValueError):
 
 
 class Locker:
-
     ext = '.0DAY'
     block_size = 64 * 1024
     nonce_len = 12
@@ -60,10 +59,12 @@ class Locker:
         self._flag = None
         self._mac = None
         self._nonce = None
+        self._valid = None
 
     def __setattr__(self, name, value):
+
         # Prevent changing any attribute after the password
-        # arrtibute is set.
+        # attribute is set.
         if name != 'password':
             if not self.__dict__.get('password_hash'):
                 object.__setattr__(self, name, value)
@@ -88,17 +89,23 @@ class Locker:
             self._nonce = os.urandom(12)
             self._mac = None
             self._flag = True
+            self._valid = True
 
         else:
             self._flag = False
             with open(self.file_path, 'rb') as file:
+                metadata = file.read(3)
+                if not metadata == b'enc':
+                    self._valid = False
+
                 self._mac, self._nonce, self._salt = unpack('16s12s32s',
                                                             file.read(16 +
                                                                       12 + 32))
 
         self.password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                                  self._salt,
-                                                 self.iterations, self.dklen)
+                                                 self.iterations,
+                                                 self.dklen)
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
@@ -130,30 +137,31 @@ class Locker:
         mac_func = kwargs['mac_func']
 
         os.chmod(file_path, stat.S_IRWXU)
-        with open(file_path, 'rb') as fin:
-            with open(new_file, 'wb+') as fout:
+        with open(file_path, 'rb') as infile:
+            with open(new_file, 'wb+') as outfile:
                 if flag:
+
                     # Create a placeholder for writing the *mac*.
                     # and append *nonce* and *salt* before encryption.
-                    plh_nonce_salt = pack('16s12s32s',
+                    plh_nonce_salt = pack('3s16s12s32s', b'enc',
                                           b'0' * 16, nonce, salt)
-                    fout.write(plh_nonce_salt)
+                    outfile.write(plh_nonce_salt)
 
                 else:
                     # Moving ahead towards the encrypted data.
-                    fin.seek(cls.mac_len + cls.nonce_len + cls.salt_len)
+                    infile.seek(cls.mac_len + cls.nonce_len + cls.salt_len)
 
-                # Loop through the *fin*, generate encrypted data
-                # and write it to *fout*.
+                # Loop through the *infile*, generate encrypted data
+                # and write it to *outfile*.
                 while True:
-                    part = fin.read(cls.block_size)
+                    part = infile.read(cls.block_size)
                     if not part:
                         break
-                    fout.write(method(part))
+                    outfile.write(method(part))
 
                 if flag:
-                    fout.seek(0)
-                    fout.write(mac_func())
+                    outfile.seek(3)
+                    outfile.write(mac_func())
 
     def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
@@ -170,7 +178,12 @@ class Locker:
                      (Default: True).
         """
         if not self.password_hash:
-            raise ValueError("Password not provided.")
+            raise ValueError("Cannot decrypt file without a valid password.")
+
+        if not self._valid:
+            raise RuntimeError("The file is not supported. "
+                               "The file might be tampered.")
+
         # The file is being encrypted.
         if self._flag:
             method = 'encrypt'
