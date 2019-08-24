@@ -68,6 +68,9 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     nonce = kwargs['nonce']
     mac_func = kwargs['mac_func']
     block_size = kwargs['block_size']
+    metadata = kwargs['write_metadata']
+
+    meta_len = len(metadata)
 
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb') as infile:
@@ -77,14 +80,15 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                 # Create a placeholder for writing the *mac*.
                 # and append *nonce* and *salt* before encryption.
                 # Also, add a 3 Byte metadata indicating encrypted file.
-                plh_nonce_salt = pack('3s16s12s32s', b'enc',
+                plh_nonce_salt = pack(f'{meta_len}s16s12s32s',
+                                      metadata,
                                       b'0' * 16, nonce, salt)
                 outfile.write(plh_nonce_salt)
 
             else:
 
                 # Moving ahead towards the encrypted data.
-                infile.seek(3 + 16 + 12 + 32)
+                infile.seek(meta_len + 16 + 12 + 32)
 
             # Loop through the *infile*, generate encrypted data
             # and write it to *outfile*.
@@ -95,7 +99,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                 outfile.write(method(part))
 
             if flag:
-                outfile.seek(3)
+                outfile.seek(meta_len)
                 outfile.write(mac_func())
 
 
@@ -122,6 +126,7 @@ def locker(file_path, password, remove=True, **kwargs):
     ext = kwargs.get('ext', '.0DAY')
     iterations = kwargs.get('iterations', 50000)
     dklen = kwargs.get('dklen', 32)
+    metadata = kwargs.get('metadata', b'enc')
 
     # The file is being decrypted.
     if file_path.endswith(ext):
@@ -131,8 +136,8 @@ def locker(file_path, password, remove=True, **kwargs):
 
         # Retrieve the *nonce* and *salt*.
         with open(file_path, 'rb') as file:
-            metadata = file.read(3)
-            if not metadata == b'enc':
+            check_metadata = file.read(len(metadata))
+            if not check_metadata == metadata:
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
 
@@ -161,7 +166,8 @@ def locker(file_path, password, remove=True, **kwargs):
             nonce=nonce,
             mac_func=cipher_obj.digest,
             mac_val=mac,
-            salt=salt, block_size=block_size, )
+            salt=salt, block_size=block_size,
+            write_metadata=metadata)
 
     if not flag:
         try:
@@ -172,3 +178,4 @@ def locker(file_path, password, remove=True, **kwargs):
 
     if remove:
         os.remove(file_path)
+
