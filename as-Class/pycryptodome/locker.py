@@ -47,6 +47,7 @@ class Locker:
     salt_len = 32
     iterations = 50000
     dklen = 32
+    _metadata = b'enc'
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
@@ -65,7 +66,7 @@ class Locker:
 
         # Prevent changing any attribute after the password
         # attribute is set.
-        if name != 'password':
+        if name not in ['password']:
             if not self.__dict__.get('password_hash'):
                 object.__setattr__(self, name, value)
             else:
@@ -74,7 +75,8 @@ class Locker:
 
         # If user is changing password, let them do it.
         else:
-            del self.password_hash
+            if self.__dict__.get('password_hash'):
+                del self.password_hash
             object.__setattr__(self, name, value)
 
     @property
@@ -94,9 +96,10 @@ class Locker:
         else:
             self._flag = False
             with open(self.file_path, 'rb') as file:
-                metadata = file.read(3)
-                if not metadata == b'enc':
+                metadata = file.read(len(self._metadata))
+                if not metadata == self._metadata:
                     self._valid = False
+                self._valid = True
 
                 self._mac, self._nonce, self._salt = unpack('16s12s32s',
                                                             file.read(16 +
@@ -113,17 +116,16 @@ class Locker:
         This function facilitates reading from *file_path* and writing to
         *new_file* with the provided method by looping through each line
         of the file_path of fixed length, specified by *block_size*.
-
+          
           Usage
          -------
-
         file_path = File to be written on.
-
+         
          new_file = Name of the encrypted/decrypted file to written upon.
-
+           
            method = The way in which the file must be overwritten.
                     (encrypt or decrypt)
-
+             
              flag = This is to identify if the method being used is
                     for encryption or decryption.
                     If the *flag* is *True* then the *nonce* value
@@ -135,6 +137,9 @@ class Locker:
         salt = kwargs['salt']
         nonce = kwargs['nonce']
         mac_func = kwargs['mac_func']
+        metadata = kwargs['write_metadata']
+
+        meta_len = len(metadata)
 
         os.chmod(file_path, stat.S_IRWXU)
         with open(file_path, 'rb') as infile:
@@ -143,13 +148,16 @@ class Locker:
 
                     # Create a placeholder for writing the *mac*.
                     # and append *nonce* and *salt* before encryption.
-                    plh_nonce_salt = pack('3s16s12s32s', b'enc',
+                    # Add a metadata to the file for identity.
+                    plh_nonce_salt = pack(f'{meta_len}s16s12s32s',
+                                          metadata,
                                           b'0' * 16, nonce, salt)
                     outfile.write(plh_nonce_salt)
 
                 else:
                     # Moving ahead towards the encrypted data.
-                    infile.seek(cls.mac_len + cls.nonce_len + cls.salt_len)
+                    infile.seek(meta_len + cls.mac_len +
+                                cls.nonce_len + cls.salt_len)
 
                 # Loop through the *infile*, generate encrypted data
                 # and write it to *outfile*.
@@ -160,7 +168,7 @@ class Locker:
                     outfile.write(method(part))
 
                 if flag:
-                    outfile.seek(3)
+                    outfile.seek(meta_len)
                     outfile.write(mac_func())
 
     def locker(self, remove=True):
@@ -169,10 +177,10 @@ class Locker:
         Encryption or decryption depends upon the file's extension.
         The user's encryption or decryption task is almost automated since
         *encryption* or *decryption* is determined by the file's extension.
-
+           
            Usage
           -------
-
+            
             remove = If set to True, the the file that is being
                      encrypted or decrypted will be removed.
                      (Default: True).
@@ -204,7 +212,8 @@ class Locker:
                      nonce=self._nonce,
                      mac_func=cipher_obj.digest,
                      mac_val=self._mac,
-                     salt=self._salt, )
+                     salt=self._salt,
+                     write_metadata=self._metadata, )
 
         if not self._flag:
             try:
@@ -215,5 +224,3 @@ class Locker:
 
         if remove:
             os.remove(self.file_path)
-
-        return self
