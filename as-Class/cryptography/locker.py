@@ -48,6 +48,7 @@ class Locker:
     salt_len = 32
     iterations = 50000
     dklen = 32
+    _metadata = b'enc'
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
@@ -65,7 +66,7 @@ class Locker:
 
         # Prevent changing any attribute after the password
         # attribute is set.
-        if name != 'password':
+        if name not in ['password']:
             if not self.__dict__.get('password_hash'):
                 object.__setattr__(self, name, value)
             else:
@@ -74,7 +75,8 @@ class Locker:
 
         # If user is changing password, let them do it.
         else:
-            del self.password_hash
+            if self.__dict__.get('password_hash'):
+                del self.password_hash
             object.__setattr__(self, name, value)
 
     @property
@@ -94,11 +96,12 @@ class Locker:
         else:
             self._flag = False
             with open(self.file_path, 'rb') as file:
-                metadata = file.read(3)
+                metadata = file.read(len(self._metadata))
 
                 # Check for file validity.
-                if not metadata == b'enc':
+                if not metadata == self._metadata:
                     self._valid = False
+                self._valid = True
 
                 # Retrieve the *nonce* and *salt*.
                 self._nonce, self._salt = unpack('12s32s',
@@ -136,6 +139,9 @@ class Locker:
 
         salt = kwargs['salt']
         nonce = kwargs['nonce']
+        metadata = kwargs['write_metadata']
+
+        meta_len = len(metadata)
 
         os.chmod(file_path, stat.S_IRWXU)
         with open(file_path, 'rb') as infile:
@@ -143,7 +149,8 @@ class Locker:
                 if flag:
 
                     # Append *metadata*, *nonce* and *salt* before encryption.
-                    nonce_salt = pack('3s12s32s', b'enc', nonce, salt)
+                    nonce_salt = pack(f'{meta_len}s12s32s',
+                                      metadata, nonce, salt)
                     outfile.write(nonce_salt)
                     block_size = cls.block_size
 
@@ -151,7 +158,7 @@ class Locker:
 
                     # Move ahead towards the encrypted data.
                     # Set new block_size for reading encrypted data.
-                    infile.seek(cls.nonce_len + cls.salt_len)
+                    infile.seek(meta_len + cls.nonce_len + cls.salt_len)
                     block_size = cls.block_size + 16
 
                 # Loop through the *infile*, generate encrypted data
@@ -179,7 +186,7 @@ class Locker:
 
         # Check for password.
         if not self.password_hash:
-            raise ValueError("Cannot decrypt file without a valid password.")
+            raise ValueError("Cannot process file without a valid password.")
 
         # Maintain file validity.
         if not self._valid:
@@ -204,7 +211,8 @@ class Locker:
             self._writer(self.file_path, new_file,
                          crp, self._flag,
                          nonce=self._nonce,
-                         salt=self._salt, )
+                         salt=self._salt,
+                         write_metadata=self._metadata,)
         except InvalidTag:
             os.remove(new_file)
             raise DecryptionError('Invalid Password or tampered data.')
