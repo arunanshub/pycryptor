@@ -46,17 +46,12 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each line
     of the file_path of fixed length, specified by *block_size*.
-
       Usage
      -------
-
     file_path = File to be written on.
-
      new_file = Name of the encrypted/decrypted file to written upon.
-
        method = The way in which the file must be overwritten.
                 (encrypt or decrypt)
-
          flag = This is to identify if the method being used is
                 for encryption or decryption.
                 If the *flag* is *True* then the *nonce* value
@@ -68,6 +63,9 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     salt = kwargs['salt']
     nonce = kwargs['nonce']
     block_size = kwargs['block_size']
+    metadata = kwargs['write_metadata']
+
+    meta_len = len(metadata)
 
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb') as infile:
@@ -75,14 +73,16 @@ def _writer(file_path, new_file, method, flag, **kwargs):
             if flag:
 
                 # Append *nonce* and *salt* before encryption.
-                nonce_salt = pack('3s12s32s', b'enc', nonce, salt)
+                # Write a metadata to maintain uniqueness.
+                nonce_salt = pack(f'{meta_len}s12s32s',
+                                  metadata, nonce, salt)
                 outfile.write(nonce_salt)
 
             else:
 
                 # Moving ahead towards the encrypted data.
                 # Setting new block_size for reading encrypted data
-                infile.seek(3 + 12 + 32)
+                infile.seek(meta_len + 12 + 32)
                 block_size += 16
 
             # Loop through the *infile*, generate encrypted data
@@ -100,14 +100,10 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-
        Usage
      ---------
-
      file_path = File to be written on.
-
       password = Password to be used for encryption/decryption.
-
         remove = If set to True, the the file that is being
                  encrypted or decrypted will be removed.
                  (Default: True).
@@ -117,6 +113,7 @@ def locker(file_path, password, remove=True, **kwargs):
     ext = kwargs.get('ext', '.0DAY')
     iterations = kwargs.get('iterations', 50000)
     dklen = kwargs.get('dklen', 32)
+    metadata = kwargs.get('metadata', b'enc')
 
     # The file is being decrypted.
     if file_path.endswith(ext):
@@ -126,9 +123,9 @@ def locker(file_path, password, remove=True, **kwargs):
 
         with open(file_path, 'rb') as file:
 
-            # Check if file is valid.
-            metadata = file.read(3)
-            if not metadata == b'enc':
+            # Check if file can be decrypted.
+            check_metadata = file.read(len(metadata))
+            if not metadata == check_metadata:
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
 
@@ -155,10 +152,12 @@ def locker(file_path, password, remove=True, **kwargs):
         _writer(file_path, new_file,
                 crp, flag,
                 nonce=nonce, salt=salt,
-                block_size=block_size, )
+                block_size=block_size,
+                write_metadata=metadata,)
     except InvalidTag:
         os.remove(new_file)
         raise DecryptionError('Invalid Password or tampered data.') from None
 
     if remove:
         os.remove(file_path)
+
