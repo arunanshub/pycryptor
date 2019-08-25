@@ -42,22 +42,23 @@ class DecryptionError(ValueError):
 
 
 def _writer(file_path, new_file, method, flag, **kwargs):
-    """Facilitates reading/writing to file.
+    """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each line
     of the file_path of fixed length, specified by *block_size*.
-      Usage
-     -------
-    file_path = File to be written on.
-     new_file = Name of the encrypted/decrypted file to written upon.
-       method = The way in which the file must be overwritten.
-                (encrypt or decrypt)
-         flag = This is to identify if the method being used is
-                for encryption or decryption.
-                If the *flag* is *True* then the *nonce* value
-                is written to the end of the *new_file*.
-                If the *flag* is *False*, then the *nonce* is written to
-                *file_path*.
+
+    :param file_path: File to be written on.
+    :param new_file: Name of the encrypted/decrypted file to written upon.
+    :param method: The way in which the file must be overwritten.
+                   (encrypt or decrypt).
+    :param flag: This is to identify if the method being used is
+                 for encryption or decryption.
+                 If the *flag* is *True* then the *nonce* value
+                 is written to the end of the *new_file*.
+                 If the *flag* is *False*, then the *nonce* is written to
+                 *file_path*.
+    :param kwargs: slat, nonce, block_size, metadata
+    :return: None
     """
 
     salt = kwargs['salt']
@@ -100,20 +101,27 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-       Usage
-     ---------
-     file_path = File to be written on.
-      password = Password to be used for encryption/decryption.
-        remove = If set to True, the the file that is being
-                 encrypted or decrypted will be removed.
-                 (Default: True).
+
+    :param file_path: File to be written on.
+    :param password: Password to be used for encryption/decryption.
+    :param remove: If set to True, the the file that is being
+                   encrypted or decrypted will be removed.
+                   (Default: True).
+    :param kwargs:
+                block_size = valid block size in int for reading files.
+                ext = extension to be appended to the files.
+                iterations = no. of iterations to derive the the key
+                             from the password.
+                dklen = length of key after PBK derivation.
+                metadata = associated metadata written to file.
+    :return: None
     """
 
     block_size = kwargs.get('block_size', 64 * 1024)
     ext = kwargs.get('ext', '.0DAY')
     iterations = kwargs.get('iterations', 50000)
     dklen = kwargs.get('dklen', 32)
-    metadata = kwargs.get('metadata', b'enc')
+    metadata = kwargs.get('metadata', b'Encrypted-using-Pycryptor')
 
     # The file is being decrypted.
     if file_path.endswith(ext):
@@ -146,7 +154,7 @@ def locker(file_path, password, remove=True, **kwargs):
     password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                         salt, iterations, dklen)
     cipher_obj = getattr(AESGCM(password_hash), method)
-    crp = partial(cipher_obj, nonce=nonce, associated_data=None)
+    crp = partial(cipher_obj, nonce=nonce, associated_data=metadata)
 
     try:
         _writer(file_path, new_file,
@@ -160,4 +168,3 @@ def locker(file_path, password, remove=True, **kwargs):
 
     if remove:
         os.remove(file_path)
-
