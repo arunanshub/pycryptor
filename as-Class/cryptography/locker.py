@@ -48,7 +48,7 @@ class Locker:
     salt_len = 32
     iterations = 50000
     dklen = 32
-    _metadata = b'enc'
+    _metadata = b'Encrypted-using-Pycryptor'
 
     def __init__(self, file_path):
         if os.path.exists(file_path):
@@ -114,28 +114,24 @@ class Locker:
 
     @classmethod
     def _writer(cls, file_path, new_file, method, flag, **kwargs):
-        """Facilitates reading/writing to file.
-        This function facilitates reading from *file_path* and writing to
-        *new_file* with the provided method by looping through each line
-        of the file_path of fixed length, specified by *block_size*.
+        """Facilitates reading/writing to/from file.
+    This function facilitates reading from *file_path* and writing to
+    *new_file* with the provided method by looping through each line
+    of the file_path of fixed length, specified by *block_size*.
 
-          Usage
-         -------
-
-        file_path = File to be written on.
-
-         new_file = Name of the encrypted/decrypted file to written upon.
-
-           method = The way in which the file must be overwritten.
-                    (encrypt or decrypt)
-
-             flag = This is to identify if the method being used is
-                    for encryption or decryption.
-                    If the *flag* is *True* then the *nonce* value
-                    is written to the end of the *new_file*.
-                    If the *flag* is *False*, then the *nonce* is written to
-                    *file_path*.
-        """
+    :param file_path: File to be written on.
+    :param new_file: Name of the encrypted/decrypted file to written upon.
+    :param method: The way in which the file must be overwritten.
+                   (encrypt or decrypt).
+    :param flag: This is to identify if the method being used is
+                 for encryption or decryption.
+                 If the *flag* is *True* then the *nonce* value
+                 is written to the end of the *new_file*.
+                 If the *flag* is *False*, then the *nonce* is written to
+                 *file_path*.
+    :param kwargs: slat, nonce, mac_func, block_size, metadata
+    :return: None
+    """
 
         salt = kwargs['salt']
         nonce = kwargs['nonce']
@@ -171,18 +167,16 @@ class Locker:
 
     def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
-        This function either encrypts or decrypts the file - *file_path*.
-        Encryption or decryption depends upon the file's extension.
-        The user's encryption or decryption task is almost automated since
-        *encryption* or *decryption* is determined by the file's extension.
+    This function either encrypts or decrypts the file - *file_path*.
+    Encryption or decryption depends upon the file's extension.
+    The user's encryption or decryption task is almost automated since
+    *encryption* or *decryption* is determined by the file's extension.
 
-          Usage
-         -------
-
-          remove = If set to True, the the file that is being
+    :param remove: If set to True, the the file that is being
                    encrypted or decrypted will be removed.
                    (Default: True).
-        """
+    :return: None
+    """
 
         # Check for password.
         if not self.password_hash:
@@ -205,7 +199,7 @@ class Locker:
 
         # Create a *cipher* with required method.
         cipher_obj = getattr(AESGCM(self.password_hash), method)
-        crp = partial(cipher_obj, nonce=self._nonce, associated_data=None)
+        crp = partial(cipher_obj, nonce=self._nonce, associated_data=self._metadata)
 
         try:
             self._writer(self.file_path, new_file,
