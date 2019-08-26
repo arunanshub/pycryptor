@@ -46,6 +46,13 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each line
     of the file_path of fixed length, specified by *block_size*.
+    
+    Note: Since ``cryptography`` module's AESGCM encryption appends a MAC
+          after the encrypted part, hence the *nonce* is calculated after
+          every block is read for encryption.
+          The same is done for decryption, but the appended *nonce* is read
+          along with the block data.
+          The same *nonce* is never reused.
 
     :param file_path: File to be written on.
     :param new_file: Name of the encrypted/decrypted file to written upon.
@@ -62,7 +69,6 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     """
 
     salt = kwargs['salt']
-    nonce = kwargs['nonce']
     block_size = kwargs['block_size']
     metadata = kwargs['write_metadata']
 
@@ -72,27 +78,23 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     with open(file_path, 'rb') as infile:
         with open(new_file, 'wb+') as outfile:
             if flag:
-
-                # Append *nonce* and *salt* before encryption.
-                # Write a metadata to maintain uniqueness.
-                nonce_salt = pack(f'{meta_len}s12s32s',
-                                  metadata, nonce, salt)
-                outfile.write(nonce_salt)
-
+                meta_salt = pack(f'{meta_len}s32s', metadata, salt)
+                outfile.write(meta_salt)
             else:
+                block_size += 12 + 16
+                infile.seek(meta_len + 32)
 
-                # Moving ahead towards the encrypted data.
-                # Setting new block_size for reading encrypted data
-                infile.seek(meta_len + 12 + 32)
-                block_size += 16
-
-            # Loop through the *infile*, generate encrypted data
-            # and write it to *outfile*.
             while True:
-                part = infile.read(block_size)
-                if not part:
+                data = infile.read(block_size)
+                if not data:
                     break
-                outfile.write(method(data=part))
+                if flag:
+                    nonce = os.urandom(12)
+                    part = data
+                    outfile.write(nonce + method(nonce=nonce, data=part))
+                else:
+                    nonce, part = unpack(f'12s{len(data)-12}s', data)
+                    outfile.write(method(nonce=nonce, data=part))
 
 
 def locker(file_path, password, remove=True, **kwargs):
@@ -137,16 +139,14 @@ def locker(file_path, password, remove=True, **kwargs):
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
 
-            # Retrieve the *nonce* and *salt*.
-            nonce, salt = unpack('12s32s',
-                                 file.read(12 + 32))
+            # Retrieve the *salt*.
+            salt = file.read(32)
 
     # The file is being encrypted
     else:
         method = 'encrypt'
         flag = True
         new_file = file_path + ext
-        nonce = os.urandom(12)
         salt = os.urandom(32)
 
     # Create a *password_hash* and *cipher* with
@@ -154,14 +154,13 @@ def locker(file_path, password, remove=True, **kwargs):
     password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                         salt, iterations, dklen)
     cipher_obj = getattr(AESGCM(password_hash), method)
-    crp = partial(cipher_obj, nonce=nonce, associated_data=metadata)
+    crp = partial(cipher_obj, associated_data=metadata)
 
     try:
         _writer(file_path, new_file,
-                crp, flag,
-                nonce=nonce, salt=salt,
+                crp, flag, salt=salt,
                 block_size=block_size,
-                write_metadata=metadata,)
+                write_metadata=metadata, )
     except InvalidTag:
         os.remove(new_file)
         raise DecryptionError('Invalid Password or tampered data.') from None
