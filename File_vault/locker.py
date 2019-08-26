@@ -56,7 +56,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                  is written to the end of the *new_file*.
                  If the *flag* is *False*, then the *nonce* is written to
                  *file_path*.
-    :param kwargs: slat, nonce, mac_func, block_size, metadata
+    :param kwargs: salt, nonce, mac_func, block_size, metadata
     :return: None
     """
 
