@@ -59,7 +59,6 @@ class Locker:
         self._salt = None
         self.password_hash = None
         self._flag = None
-        self._nonce = None
         self._valid = None
 
     def __setattr__(self, name, value):
@@ -89,7 +88,6 @@ class Locker:
     def password(self, password):
         if not self.file_path.endswith(self.ext):
             self._salt = os.urandom(32)
-            self._nonce = os.urandom(12)
             self._flag = True
             self._valid = True
 
@@ -104,8 +102,7 @@ class Locker:
                 self._valid = True
 
                 # Retrieve the *nonce* and *salt*.
-                self._nonce, self._salt = unpack('12s32s',
-                                                 file.read(12 + 32))
+                self._salt = file.read(32)
 
         self.password_hash = hashlib.pbkdf2_hmac('sha512', password,
                                                  self._salt,
@@ -118,6 +115,13 @@ class Locker:
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each line
     of the file_path of fixed length, specified by *block_size*.
+    
+    Note: Since ``cryptography`` module's AESGCM encryption appends a MAC
+          after the encrypted part, hence the *nonce* is calculated after
+          every block is read for encryption.
+          The same is done for decryption, but the appended *nonce* is read
+          along with the block data.
+          The same *nonce* is never reused.
 
     :param file_path: File to be written on.
     :param new_file: Name of the encrypted/decrypted file to written upon.
@@ -134,8 +138,8 @@ class Locker:
     """
 
         salt = kwargs['salt']
-        nonce = kwargs['nonce']
         metadata = kwargs['write_metadata']
+        block_size = kwargs['block_size']
 
         meta_len = len(metadata)
 
@@ -143,27 +147,23 @@ class Locker:
         with open(file_path, 'rb') as infile:
             with open(new_file, 'wb+') as outfile:
                 if flag:
-
-                    # Append *metadata*, *nonce* and *salt* before encryption.
-                    nonce_salt = pack(f'{meta_len}s12s32s',
-                                      metadata, nonce, salt)
-                    outfile.write(nonce_salt)
-                    block_size = cls.block_size
-
+                    meta_salt = pack(f'{meta_len}s32s', metadata, salt)
+                    outfile.write(meta_salt)
                 else:
+                    block_size += 12 + 16
+                    infile.seek(meta_len + 32)
 
-                    # Move ahead towards the encrypted data.
-                    # Set new block_size for reading encrypted data.
-                    infile.seek(meta_len + cls.nonce_len + cls.salt_len)
-                    block_size = cls.block_size + 16
-
-                # Loop through the *infile*, generate encrypted data
-                # and write it to *outfile*.
                 while True:
-                    part = infile.read(block_size)
-                    if not part:
+                    data = infile.read(block_size)
+                    if not data:
                         break
-                    outfile.write(method(data=part))
+                    if flag:
+                        nonce = os.urandom(12)
+                        part = data
+                        outfile.write(nonce + method(nonce=nonce, data=part))
+                    else:
+                        nonce, part = data[:12], data[12:]
+                        outfile.write(method(nonce=nonce, data=part))
 
     def locker(self, remove=True):
         """Provides file locking/unlocking mechanism
@@ -199,14 +199,14 @@ class Locker:
 
         # Create a *cipher* with required method.
         cipher_obj = getattr(AESGCM(self.password_hash), method)
-        crp = partial(cipher_obj, nonce=self._nonce, associated_data=self._metadata)
+        crp = partial(cipher_obj, associated_data=self._metadata)
 
         try:
             self._writer(self.file_path, new_file,
                          crp, self._flag,
-                         nonce=self._nonce,
                          salt=self._salt,
-                         write_metadata=self._metadata,)
+                         write_metadata=self._metadata,
+                         block_size=self.block_size,)
         except InvalidTag:
             os.remove(new_file)
             raise DecryptionError('Invalid Password or tampered data.')
