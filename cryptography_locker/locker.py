@@ -31,7 +31,7 @@ import hashlib
 import os
 import stat
 from functools import partial
-from struct import pack, unpack
+from struct import pack
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -53,7 +53,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
           The same is done for decryption, but the appended *nonce* is read
           along with the block data.
           The same *nonce* is never reused.
-
+    
     :param file_path: File to be written on.
     :param new_file: Name of the encrypted/decrypted file to written upon.
     :param method: The way in which the file must be overwritten.
@@ -93,7 +93,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                     part = data
                     outfile.write(nonce + method(nonce=nonce, data=part))
                 else:
-                    nonce, part = unpack(f'12s{len(data)-12}s', data)
+                    nonce, part = data[:12], data[12:]
                     outfile.write(method(nonce=nonce, data=part))
 
 
@@ -103,7 +103,6 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-
     :param file_path: File to be written on.
     :param password: Password to be used for encryption/decryption.
     :param remove: If set to True, the the file that is being
