@@ -4,7 +4,7 @@ The program uses the AES-GCM-256 for its work.
 
 There are two flavors of the program, one is a simple __`File Encryptor`__ and the other is a simple and effective multiplatform  __`Python Ransomware`__. The __File Vault__ was actually a school project, but the idea of ransomware came to me because of the procedure I was using for encrypting the files.
 
-Atleast, for now, the encryptor and decryptor functions doesn't use the `threading/multiprocessing/asyncio` modules' benifits. But work is under progress, so it is _hoped that all will be great under the hood..._
+The `thrad_locker` uses `concurrent.futures` thread pools for getting it's job done.
 
 > __Work for the `File vault` and `Ransomware` is still under progress
 > but the `Locker` module provides highly secure encryption
