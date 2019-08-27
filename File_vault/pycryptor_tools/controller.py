@@ -16,6 +16,7 @@ class Controller:
         Files {method}ed: {success}
             Files failed: {failed}
          Files not found: {fnf}
+           Files ignored: {ign}
             """
 
     # adds file to list
@@ -41,7 +42,6 @@ class Controller:
     def encrypt(self, password, ext, dklen):
 
         # general errors
-        # ==========================
         if len(self.file_items) == 0:
             messagebox.showerror("Error", "No file has been selected for encryption.")
             return
@@ -49,7 +49,6 @@ class Controller:
         elif len(password) == 0:
             messagebox.showerror("Error", "No password entered for encryption.")
             return
-        # ==========================
         else:
             stats = thread_locker(self.file_items, password.encode(), 'encrypt', ext=ext, dklen=dklen)
             not_found, success, failure, inv = stats['FNF'], stats['SUC'], stats['FAIL'], stats['INV']
@@ -72,16 +71,18 @@ class Controller:
                 success=len(success),
                 failed=len(failure),
                 fnf=len(not_found),
+                ign=len(inv)
             ))
 
     # starts decryption process
     def decrypt(self, password, ext, dklen):
 
+        # general errors
         if len(self.file_items) == 0:
             messagebox.showerror("Error", "No files has been selected for decryption.")
 
         elif len(password) == 0:
-            messagebox.showerror("Error", "No password entered for encryption.")
+            messagebox.showerror("Error", "No password entered for decryption.")
             return
 
         else:
@@ -107,4 +108,5 @@ class Controller:
                 success=len(success),
                 failed=len(failure),
                 fnf=len(not_found),
+                ign=len(inv)
             ))
