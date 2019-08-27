@@ -31,11 +31,10 @@ class MainApplication(tk.Frame):
 
     version_no = "1.0.0"
 
-    aboutmsg = r"""Pycryptor
+    aboutmsg = """Pycryptor v.{version}
 A special application for encryption and
 decryption of files.
 
-v1.0
 Created with love by:
     1) Arunanshu Biswas (arunanshub)
            Cryptographic File locking facilities
@@ -143,7 +142,8 @@ but other than that, everything is golden.
                                                                   self.help_msg.format(version=self.version_no)))
         filemenu2.add_separator()
         filemenu2.add_command(label="About",
-                              command=lambda: messagebox.showinfo("Pycryptor", self.aboutmsg))
+                              command=lambda: messagebox.showinfo("Pycryptor",
+                                                                  self.aboutmsg.format(version=self.version_no)))
         filemenu2.add_separator()
         filemenu2.add_command(label="Visit Me on the Web",
                               command=lambda: webbrowser.open("https://bit.ly/342tT9b"))
