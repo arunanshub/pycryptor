@@ -60,7 +60,7 @@ Features:
     - Completely customisable
     - Fully Open-Source
     - No external dependencies needed
-       (except for "Pycryptodomex")
+       (except for "pycryptodomex")
     - Fast file processing due to the use of threads
     
 Color codes:
@@ -69,11 +69,12 @@ Color codes:
     - Yellow : Files not found
     - Red : Failed operation
 
-Note: Sometimes, if big files are given for encryption
-           (or decryption), Pycryptor stops responding.
-           This is NOT a bug.
-           It would be fixed later due to some unavoidable reasons,
-           but other than that, everything is golden.
+Note:
+Sometimes, if big files are given for encryption
+(or decryption), Pycryptor stops responding.
+This is NOT a bug.
+It would be fixed later due to some unavoidable reasons,
+but other than that, everything is golden.
     """
     config_help = """Help for Options>Configure:
 
