@@ -5,6 +5,18 @@ from tkinter import messagebox
 from tkinter import ttk
 from tkinter.font import Font
 
+import sys
+try:
+    import Cryptodome
+except ImportError:
+    root = Tk()
+    root.withdraw()
+    messagebox.showerror("Pycryptor",
+                         "Pycryptor needs Cryptodome for encryption and "
+                         "decryption, but it was not found. Please "
+                         "configure your system properly.")
+    sys.exit(1)
+
 from pycryptor_tools import utility as util
 from pycryptor_tools.controller import Controller
 
@@ -26,10 +38,16 @@ decryption of files.
 v1.0
 Created with love by:
     1) Arunanshu Biswas (arunanshub)
-           Cryptographic File locking facilities.
-           Multiprocessing Capabilities
+           Cryptographic File locking facilities
+           Multithreading Capabilities
+           ... plus all backend
 
-Available at:
+    2) Sagnik Haldar (hsagnik)
+           GUI Creation
+           Color Codes
+           ...plus all frontend
+
+Also Available at:
     http://github.com/arunanshub/pycryptor
     """
 
@@ -41,20 +59,29 @@ and uses "AES-GCM" for encryption and decryption of files.
 Features:
     - Completely customisable
     - Fully Open-Source
-    - No external dependencies needed (except for files in `requirements.txt`)
-    - Fast file processing due to the use of threads.
+    - No external dependencies needed
+       (except for "Pycryptodomex")
+    - Fast file processing due to the use of threads
     
 Color codes:
     - Green : Successful operation
     - Purple : Skipped files
     - Yellow : Files not found
     - Red : Failed operation
+
+Note: Sometimes, if big files are given for encryption
+           (or decryption), Pycryptor stops responding.
+           This is NOT a bug.
+           It would be fixed later due to some unavoidable reasons,
+           but other than that, everything is golden.
     """
     config_help = """Help for Options>Configure:
+
     - Key length : Specify the key length.
                    32 = AES-GCM-256
                    24 = AES-GCM-192
                    16 = AES-GCM-128
+
     - Extension : Extension to be used for encrypted files
     """
 
@@ -73,7 +100,7 @@ Color codes:
         # setup list
         list_label = tk.Label(top, bg=util.color_primary_dark,
                               fg=util.color_white,
-                              text="Selected files :")
+                              text="Selected files:")
 
         file_items = []
         tk_file_items = tk.Variable(top, value=file_items, name='file_items')
@@ -116,8 +143,11 @@ Color codes:
         filemenu2.add_separator()
         filemenu2.add_command(label="About",
                               command=lambda: messagebox.showinfo("Pycryptor", self.aboutmsg))
+        filemenu2.add_separator()
         filemenu2.add_command(label="Visit Me on the Web",
-                              command=lambda: webbrowser.open("https://github.com/arunanshub/pycryptor"))
+                              command=lambda: webbrowser.open("https://bit.ly/342tT9b"))
+        filemenu2.add_command(label="About AES-GCM mode",
+                              command=lambda: webbrowser.open("https://bit.ly/2zP0BOf"))
         menubar.add_cascade(label="Help", menu=filemenu2)
 
         # encryption and decryption button
@@ -153,52 +183,55 @@ Color codes:
                                borderwidth=0)
 
         # element placement
-        add_btn.place(height=30, width=60, x=350, y=260)  # file add btn
-        remove_btn.place(height=30, width=70, x=420, y=260)  # file remove btn
-        encrypt_btn.place(height=40, width=100, x=10, y=35)  # start encryption btn
-        decrypt_btn.place(height=40, width=100, x=10, y=85)  # start decryption btn
-        list_label.place(height=20, x=120, y=10)  # file list label
-        ctrl.tk_listbox.place(height=175, width=370, x=120, y=35)  # file list
-        password_label.place(height=20, width=60, x=120, y=230)  # password input label
-        password_input.place(height=20, width=300, x=190, y=230)  # password input
-        top.place(height=300, width=600, x=0, y=0)  # parent element
+        add_btn.place(height=30, width=60, x=315, y=305)  # file add btn
+        remove_btn.place(height=30, width=70, x=390, y=305)  # file remove btn
+
+        encrypt_btn.place(height=50, width=200, x=20, y=380)  # start encryption btn
+        decrypt_btn.place(height=50, width=200, x=260, y=380)  # start decryption btn
+        list_label.place(height=20, x=15, y=10)  # file list label
+        ctrl.tk_listbox.place(height=250, width=350, x=110, y=40)  # file list
+        password_label.place(height=20, width=100, x=15, y=345)  # password input label
+
+        password_input.place(height=20, width=350, x=110, y=345)  # password input
+
+        top.place(height=450, width=480, x=0, y=0)  # parent element
         root.config(menu=menubar)  # setup menu
 
     def config_box(self):
         self.conf = Toplevel(root)  # bg=util.color_accent_dark)
         self.dkey = IntVar(self.conf, self.dklen, 'dklen')
         self.conf.resizable(0, 0)
+        self.conf.geometry('270x145')
         self.conf.title('Pycryptor Configurations')
 
         fr = LabelFrame(self.conf, text="Pycryptor Configuration", )
-        fr.grid(row=0, columnspan=3, pady=2, padx=2, sticky='w', ipadx=25)
+        fr.place(x=10, y=10, height=90, width=250)
 
         # row 1
-        Label(fr, text="Encryption Extension:", ).grid_configure(pady=4, sticky='w',
-                                                                 row=1, column=0)
-        self.ext = ttk.Entry(fr, width=10)
+        Label(fr, text="Encryption Extension:", ).place(x=5, y=5,)
+        self.ext = ttk.Entry(fr, width=12)
         self.ext.insert(0, self.extension)
-        self.ext.grid(row=1, column=1, pady=4, sticky='ne')
+        self.ext.place(x=150, y=5)
 
         # row 2
-        Label(fr, text="Key Length:", ).grid_configure(sticky='w', pady=2,
-                                                       padx=2, row=2, column=0)
+        Label(fr, text="Key Length:", ).place(x=56, y=35)
+
         opm = ttk.OptionMenu(fr, self.dkey, self.dklen,
                              *self.key_lens, )
-        opm.config(width=6)
-        opm.grid_configure(sticky='se', row=2, column=1, pady=2, padx=2)
+        opm.config(width=8)
+        opm.place(x=150, y=35)
 
+        # after the frame
         ttk.Button(
-            self.conf, text='Help',  # apply button
+            self.conf, text='Help', # help button
             command=lambda: messagebox.showinfo("Configuration Help", self.config_help),
-        ).grid(row=1, column=0,
-               padx=4, pady=4, )
+        ).place(x=10, y=110)
+
         ttk.Button(self.conf, text='Apply',  # apply button
-                   command=self.config_apply, ).grid(row=1, column=1,
-                                                     padx=4, pady=4, )
+                   command=self.config_apply, ).place(x=97, y=110)
+
         ttk.Button(self.conf, text='Cancel',  # cancel button
-                   command=self.conf.destroy, ).grid(row=1, column=2,
-                                                     padx=4, pady=4, )
+                   command=self.conf.destroy, ).place(x=185, y=110)
 
         self.conf.wm_iconbitmap('pycryptor.ico')
         self.conf.transient(root)
@@ -219,7 +252,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.title("Pycryptor")
     root.resizable(0, 0)
-    root.geometry("500x300")
+    root.geometry("480x450")
     MainApplication(root).pack(side="top", fill="both", expand=True)
     root.wm_iconbitmap('pycryptor.ico')
     root.mainloop()
