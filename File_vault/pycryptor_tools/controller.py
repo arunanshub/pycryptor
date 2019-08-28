@@ -1,7 +1,6 @@
 from collections import deque
 from tkinter import filedialog, messagebox
 
-# import threading
 from pycryptor_tools.thread_locker import thread_locker
 
 
@@ -12,7 +11,7 @@ class Controller:
         self.tk_listbox = tk_listbox
         self.error = ""
         self.stat_template = """Here are the results after {method}ion:
-        
+
         Files {method}ed: {success}
             Files failed: {failed}
          Files not found: {fnf}
@@ -43,17 +42,23 @@ class Controller:
 
         # general errors
         if len(self.file_items) == 0:
-            messagebox.showerror("Error", "No file has been selected for encryption.")
+            messagebox.showerror("Error", "No file has been selected "
+                                          "for encryption.")
             return
 
         elif len(password) == 0:
-            messagebox.showerror("Error", "No password entered for encryption.")
+            messagebox.showerror("Error", "No password entered "
+                                          "for encryption.")
             return
         else:
-            stats = thread_locker(self.file_items, password.encode(), 'encrypt', ext=ext, dklen=dklen)
-            not_found, success, failure, inv = stats['FNF'], stats['SUC'], stats['FAIL'], stats['INV']
+            stats = thread_locker(self.file_items,
+                                  password.encode(),
+                                  'encrypt', ext=ext, dklen=dklen)
+            not_found, success, failure, inv = stats['FNF'], stats['SUC'], \
+                stats['FAIL'], stats['INV']
 
-            tk_list_items = self.tk_listbox.getvar(self.tk_listbox.cget('listvariable'))
+            tk_list_items = self.tk_listbox.getvar(self.tk_listbox.cget(
+                                                       'listvariable'))
 
             for each in tk_list_items:
                 index = self.tk_listbox.get(0, 'end').index(each)
@@ -62,9 +67,11 @@ class Controller:
                 elif each in failure:
                     self.tk_listbox.itemconfig(index, {"bg": 'red'})
                 elif each in inv:
-                    self.tk_listbox.itemconfig(index, {"bg": 'purple', 'fg': 'white'})
+                    self.tk_listbox.itemconfig(index, {"bg": 'purple',
+                                                       "fg": 'white'})
                 elif each in not_found:
-                    self.tk_listbox.itemconfig(index, {"bg": 'yellow', 'fg': 'black'})
+                    self.tk_listbox.itemconfig(index, {"bg": 'yellow',
+                                                       'fg': 'black'})
 
             messagebox.showinfo('Encrypted', self.stat_template.format(
                 method='encrypt',
@@ -79,18 +86,24 @@ class Controller:
 
         # general errors
         if len(self.file_items) == 0:
-            messagebox.showerror("Error", "No files has been selected for decryption.")
+            messagebox.showerror("Error", "No files has been selected "
+                                          "for decryption.")
 
         elif len(password) == 0:
-            messagebox.showerror("Error", "No password entered for decryption.")
+            messagebox.showerror("Error", "No password entered "
+                                          "for decryption.")
             return
 
         else:
-            stats = thread_locker(self.file_items, password.encode(), 'decrypt', ext=ext, dklen=dklen)
+            stats = thread_locker(self.file_items,
+                                  password.encode(),
+                                  'decrypt', ext=ext, dklen=dklen)
 
-            not_found, success, failure, inv = stats['FNF'], stats['SUC'], stats['FAIL'], stats['INV']
+            not_found, success, failure, inv = stats['FNF'], stats['SUC'], \
+                stats['FAIL'], stats['INV']
 
-            tk_list_items = self.tk_listbox.getvar(self.tk_listbox.cget('listvariable'))
+            tk_list_items = self.tk_listbox.getvar(self.tk_listbox.cget(
+                                                   'listvariable'))
 
             for each in tk_list_items:
                 index = self.tk_listbox.get(0, 'end').index(each)
@@ -99,9 +112,11 @@ class Controller:
                 elif each in failure:
                     self.tk_listbox.itemconfig(index, {"bg": 'red'})
                 elif each in inv:
-                    self.tk_listbox.itemconfig(index, {"bg": 'purple', "fg": 'white'})
+                    self.tk_listbox.itemconfig(index, {"bg": 'purple',
+                                                       "fg": 'white'})
                 elif each in not_found:
-                    self.tk_listbox.itemconfig(index, {"bg": 'yellow', "fg": 'black'})
+                    self.tk_listbox.itemconfig(index, {"bg": 'yellow',
+                                                       "fg": 'black'})
 
             messagebox.showinfo('Decrypted', self.stat_template.format(
                 method='decrypt',
