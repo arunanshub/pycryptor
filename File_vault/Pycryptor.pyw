@@ -1,3 +1,5 @@
+# GUI inspired from captainAyan/pycryptor
+
 import tkinter as tk
 import webbrowser
 from tkinter import *
@@ -7,10 +9,11 @@ from tkinter.font import Font
 
 import sys
 try:
+    # try checking for required module
     import Cryptodome
 except ImportError:
-    root = Tk()
-    root.withdraw()
+    _ = Tk()
+    _.withdraw()
     messagebox.showerror("Pycryptor",
                          "Pycryptor needs Cryptodome for encryption and "
                          "decryption, but it was not found. Please "
@@ -52,16 +55,16 @@ Also Available at:
 
     help_msg = """Pycryptor v.{version}
 Pycryptor is a portable app for encryption and
-decryption of files. It is completely written in Python 
+decryption of files. It is completely written in Python
 and uses "AES-GCM" for encryption and decryption of files.
-    
+
 Features:
     - Completely customisable
     - Fully Open-Source
     - No external dependencies needed
        (except for "pycryptodomex")
     - Fast file processing due to the use of threads
-    
+
 Color codes:
     - Green : Successful operation
     - Purple : Skipped files
@@ -106,9 +109,10 @@ but other than that, everything is golden.
         tk_file_items = tk.Variable(top, value=file_items, name='file_items')
         ctrl = Controller(file_items, tk.Listbox(top, borderwidth=0,
                                                  listvariable=tk_file_items,
-                                                 highlightbackground=util.color_accent_dark,
+                                                 highlightbackground=util.
+                                                 color_accent_dark,
                                                  bg=util.color_accent_dark,
-                                                 fg=util.color_white, ), )
+                                                 fg=util.color_white))
 
         # input box
         password_label = ttk.Label(top, text="Password :", style="BW.TLabel")
@@ -123,48 +127,59 @@ but other than that, everything is golden.
         filemenu1 = tk.Menu(menubar, tearoff=0)
         filemenu1.add_command(label="Add", command=ctrl.add)
         filemenu1.add_command(label="Encrypt",
-                              command=lambda: ctrl.encrypt(password_input.get(),
-                                                           self.extension,
-                                                           self.dklen))
+                              command=lambda: ctrl.encrypt(
+                                  password_input.get(),
+                                  self.extension,
+                                  self.dklen))
         filemenu1.add_command(label="Decrypt",
-                              command=lambda: ctrl.decrypt(password_input.get(),
-                                                           self.extension,
-                                                           self.dklen))
+                              command=lambda: ctrl.decrypt(
+                                  password_input.get(),
+                                  self.extension,
+                                  self.dklen))
         filemenu1.add_separator()
-        filemenu1.add_command(label="Configure...", command=lambda: self.config_box())
+        filemenu1.add_command(label="Configure...",
+                              command=lambda: self.config_box())
         filemenu1.add_separator()
         filemenu1.add_command(label="Exit", command=lambda: root.destroy())
 
         menubar.add_cascade(label="Options", menu=filemenu1)
         filemenu2 = tk.Menu(menubar, tearoff=0)
         filemenu2.add_command(label="Help",
-                              command=lambda: messagebox.showinfo("Pycryptor",
-                                                                  self.help_msg.format(version=self.version_no)))
+                              command=lambda: messagebox.showinfo(
+                                  "Pycryptor",
+                                  self.help_msg.format(version=self.version_no)
+                                  ))
         filemenu2.add_separator()
         filemenu2.add_command(label="About",
-                              command=lambda: messagebox.showinfo("Pycryptor",
-                                                                  self.aboutmsg.format(version=self.version_no)))
+                              command=lambda: messagebox.showinfo(
+                                  "Pycryptor",
+                                  self.aboutmsg.format(version=self.version_no)
+                                  ))
         filemenu2.add_separator()
         filemenu2.add_command(label="Visit Me on the Web",
-                              command=lambda: webbrowser.open("https://bit.ly/342tT9b"))
+                              command=lambda: webbrowser.open(
+                                  "https://bit.ly/342tT9b"))
         filemenu2.add_command(label="About AES-GCM mode",
-                              command=lambda: webbrowser.open("https://bit.ly/2zP0BOf"))
+                              command=lambda: webbrowser.open(
+                                  "https://bit.ly/2zP0BOf"))
         menubar.add_cascade(label="Help", menu=filemenu2)
 
         # encryption and decryption button
         encrypt_btn = tk.Button(top, text="Encrypt",
-                                command=lambda: ctrl.encrypt(password_input.get(),
-                                                             self.extension,
-                                                             self.dklen, ),
+                                command=lambda: ctrl.encrypt(
+                                    password_input.get(),
+                                    self.extension,
+                                    self.dklen),
                                 bg=util.color_accent_dark,
                                 fg=util.color_white,
                                 borderwidth=0,
                                 font=custom_font)
 
         decrypt_btn = tk.Button(top, text="Decrypt",
-                                command=lambda: ctrl.decrypt(password_input.get(),
-                                                             self.extension,
-                                                             self.dklen),
+                                command=lambda: ctrl.decrypt(
+                                    password_input.get(),
+                                    self.extension,
+                                    self.dklen),
                                 bg=util.color_accent_dark,
                                 fg=util.color_white,
                                 borderwidth=0,
@@ -187,16 +202,22 @@ but other than that, everything is golden.
         add_btn.place(height=30, width=60, x=315, y=305)  # file add btn
         remove_btn.place(height=30, width=70, x=390, y=305)  # file remove btn
 
-        encrypt_btn.place(height=50, width=200, x=20, y=380)  # start encryption btn
-        decrypt_btn.place(height=50, width=200, x=260, y=380)  # start decryption btn
-        list_label.place(height=20, x=15, y=10)  # file list label
-        ctrl.tk_listbox.place(height=250, width=350, x=110, y=40)  # file list
-        password_label.place(height=20, width=100, x=15, y=345)  # password input label
-
-        password_input.place(height=20, width=350, x=110, y=345)  # password input
-
-        top.place(height=450, width=480, x=0, y=0)  # parent element
-        root.config(menu=menubar)  # setup menu
+        # start encryption btn
+        encrypt_btn.place(height=50, width=200, x=20, y=380)
+        # start decryption btn
+        decrypt_btn.place(height=50, width=200, x=260, y=380)
+        # file list label
+        list_label.place(height=20, x=15, y=10)
+        # file listbox
+        ctrl.tk_listbox.place(height=250, width=350, x=110, y=40)
+        # password input label
+        password_label.place(height=20, width=100, x=15, y=345)
+        # password input
+        password_input.place(height=20, width=350, x=110, y=345)
+        # parent element
+        top.place(height=450, width=480, x=0, y=0)
+        # show menubar
+        root.config(menu=menubar)
 
     def config_box(self):
         self.conf = Toplevel(root)  # bg=util.color_accent_dark)
@@ -224,9 +245,10 @@ but other than that, everything is golden.
 
         # after the frame
         ttk.Button(
-            self.conf, text='Help', # help button
-            command=lambda: messagebox.showinfo("Configuration Help", self.config_help),
-        ).place(x=10, y=110)
+            self.conf, text='Help',  # help button
+            command=lambda: messagebox.showinfo("Configuration Help",
+                                                self.config_help)
+                                                ).place(x=10, y=110)
 
         ttk.Button(self.conf, text='Apply',  # apply button
                    command=self.config_apply, ).place(x=97, y=110)
