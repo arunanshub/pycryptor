@@ -45,11 +45,15 @@ class Controller:
             messagebox.showerror("Error", "No file has been selected "
                                           "for encryption.")
             return
-
         elif len(password) == 0:
             messagebox.showerror("Error", "No password entered "
                                           "for encryption.")
             return
+        elif len(password) < 8:
+            messagebox.showerror("Error", "Password must be greater "
+                                          "than 8 bytes.")
+            return
+
         else:
             stats = thread_locker(self.file_items,
                                   password.encode(),
@@ -88,10 +92,14 @@ class Controller:
         if len(self.file_items) == 0:
             messagebox.showerror("Error", "No files has been selected "
                                           "for decryption.")
-
+            return
         elif len(password) == 0:
             messagebox.showerror("Error", "No password entered "
                                           "for decryption.")
+            return
+        elif len(password) < 8:
+            messagebox.showerror("Error", "Password must be greater "
+                                          "than 8 bytes.")
             return
 
         else:
