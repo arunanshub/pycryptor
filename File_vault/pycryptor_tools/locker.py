@@ -173,7 +173,8 @@ def locker(file_path, password, remove=True, **kwargs):
             cipher_obj.verify(mac)
         except ValueError:
             os.remove(new_file)
-            raise DecryptionError('Invalid Password or tampered data.') from None
+            raise DecryptionError('Invalid Password or tampered data.') \
+                from None
 
     if remove:
         os.remove(file_path)
