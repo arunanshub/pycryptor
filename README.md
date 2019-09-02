@@ -24,11 +24,6 @@ The `thread_locker` uses `concurrent.futures` thread pools for getting it's job 
    can replace the **original** `Locker.py` with this `Locker.py`
    instead, it won't harm the functionality of the program.
    
-	> 	P.S: The encryption and decryption speed may increase if this file is
-	> used. 	I experimented with the same in Google Colab as all the other
-	> files were 	done, where I got very fine speeds.  	But it may vary from
-	> system to system.
- 
  - __Encryption/Decryption speeds for this `Locker.py`__
 
 |File Size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
