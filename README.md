@@ -6,11 +6,6 @@ There are two flavors of the program, one is a simple __`File Encryptor`__ and t
 
 The `thread_locker` uses `concurrent.futures` thread pools for getting it's job done.
 
-> __Work for the `File vault` and `Ransomware` is still under progress
-> but the `Locker` module provides highly secure encryption
-> and decryption of files.__
----
-
 ## Features
 
  - Uses AES-GCM-256 for encryption and decryption.
