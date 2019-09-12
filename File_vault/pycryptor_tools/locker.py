@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Locker v4.0 (follows new protocol)
+# Locker v4.1b (follows new protocol)
 # Implemented as function
 #
 # =============================================================================
@@ -75,7 +75,7 @@ def _writer(file_path, new_file, method, flag, **kwargs):
 
                 # Create a placeholder for writing the *mac*.
                 # and append *nonce* and *salt* before encryption.
-                # Also, add a 3 Byte metadata indicating encrypted file.
+                # Also, add a metadata indicating encrypted file.
                 plh_nonce_salt = pack(f'{meta_len}s16s12s32s',
                                       metadata,
                                       b'0' * 16, nonce, salt)
@@ -116,8 +116,11 @@ def locker(file_path, password, remove=True, **kwargs):
                 ext = extension to be appended to the files.
                 iterations = no. of iterations to derive the the key
                              from the password.
+                algo = The PBKDF2 hashing algorithm to use.
                 dklen = length of key after PBK derivation.
                 metadata = associated metadata written to file.
+                method = set method manually (`encrypt` or `decrypt`)
+                new_file = set new file path to be written upon.
     :return: None
     """
 
@@ -126,12 +129,31 @@ def locker(file_path, password, remove=True, **kwargs):
     iterations = kwargs.get('iterations', 50000)
     dklen = kwargs.get('dklen', 32)
     metadata = kwargs.get('metadata', b'Encrypted-using-Pycryptor')
+    algo = kwargs.get('algo', 'sha512')
+    _method = kwargs.get('method')
+    _new_file = kwargs.get('new_file')
+
+    # check for new-file's existence
+    if _new_file is not None:
+        if os.path.exists(_new_file):
+            if os.path.samefile(file_path, _new_file):
+                raise ValueError(f'Cannot process with the same file.')
+            os.remove(_new_file)
+
+    # check for method validity
+    if _method is not None:
+        if _method not in ['encrypt', 'decrypt']:
+            raise ValueError(f'Invalid method: `{_method}`. '
+                             'Method can be "encrypt" or "decrypt" only.')
+
+    # use auto-functionality or `_method`.
+    _auto_method = 'encrypt' if not file_path.endswith(ext) else 'decrypt'
+    method = _method or _auto_method
 
     # The file is being decrypted.
-    if file_path.endswith(ext):
-        method = 'decrypt'
+    if method == 'decrypt':
         flag = False
-        new_file = os.path.splitext(file_path)[0]
+        new_file = _new_file or os.path.splitext(file_path)[0]
 
         # Retrieve the *nonce* and *salt*.
         with open(file_path, 'rb') as file:
@@ -145,16 +167,15 @@ def locker(file_path, password, remove=True, **kwargs):
 
     # The file is being encrypted.
     else:
-        method = 'encrypt'
         flag = True
-        new_file = file_path + ext
+        new_file = _new_file or file_path + ext
         nonce = os.urandom(12)
         salt = os.urandom(32)
         mac = None
 
     # Create a *password_hash* and *cipher* with
     # required method.
-    password_hash = hashlib.pbkdf2_hmac('sha512', password,
+    password_hash = hashlib.pbkdf2_hmac(algo, password,
                                         salt, iterations, dklen)
     cipher_obj = AES.new(password_hash, AES.MODE_GCM,
                          nonce=nonce)
