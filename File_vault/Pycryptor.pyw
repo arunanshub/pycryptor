@@ -35,22 +35,22 @@ class MainApplication(tk.Frame):
     version_no = "1.0.0"
 
     aboutmsg = """Pycryptor v.{version}
-A special application for encryption and
-decryption of files.
+Pycryptor is a portable app for encryption and
+decryption of files. It is completely written in Python
+and uses "AES-GCM" for encryption and decryption of files.
 
 Created with love by:
-    1) Arunanshu Biswas (arunanshub)
-           Cryptographic File locking facilities
-           Multithreading Capabilities
-           ... plus all backend
+1) Arunanshu Biswas (arunanshub)
+        Cryptographic File locking facilities
+        Multithreading Capabilities
+        ... plus all backend
 
     2) Sagnik Haldar (hsagnik)
-           GUI Creation
-           Color Codes
-           ...plus all frontend
+        GUI Creation
+        Color Codes
+        ... plus all frontend
 
-Also Available at:
-    http://github.com/arunanshub/pycryptor
+Also Available at: http://github.com/arunanshub/pycryptor
     """
 
     help_msg = """Pycryptor v.{version}
@@ -59,22 +59,22 @@ decryption of files. It is completely written in Python
 and uses "AES-GCM" for encryption and decryption of files.
 
 Features:
-    - Completely customisable
-    - Fully Open-Source
-    - No external dependencies needed
-       (except for "pycryptodomex")
-    - Fast file processing due to the use of threads
+- Completely customisable
+- Fully Open-Source
+- No external dependencies needed
+(except for "pycryptodomex")
+- Fast file processing due to the use of threads
 
 Color codes:
-    - Green : Successful operation
-    - Purple : Skipped files
-    - Yellow : Files not found
-    - Red : Failed operation
+- Green  : Successful operation
+- Purple : Skipped files
+- Yellow : Files not found
+- Red      : Failed operation
 
 Note:
 Sometimes, if big files are given for encryption
 (or decryption), Pycryptor stops responding.
-This is NOT a bug.
+This is NOT a bug, as Pycryptor continues the operation.
 It would be fixed later due to some unavoidable reasons,
 but other than that, everything is golden.
     """
@@ -97,7 +97,7 @@ but other than that, everything is golden.
                         foreground=util.color_white,
                         background=util.color_primary_dark)
 
-        top = tk.PanedWindow(root, bg=util.color_primary_dark)
+        top = tk.PanedWindow(self.parent, bg=util.color_primary_dark)
         custom_font = Font(size=10)
 
         # setup list
@@ -220,7 +220,7 @@ but other than that, everything is golden.
         root.config(menu=menubar)
 
     def config_box(self):
-        self.conf = Toplevel(root)  # bg=util.color_accent_dark)
+        self.conf = Toplevel(self.parent)
         self.dkey = IntVar(self.conf, self.dklen, 'dklen')
         self.conf.resizable(0, 0)
         self.conf.geometry('270x145')
@@ -257,7 +257,7 @@ but other than that, everything is golden.
                    command=self.conf.destroy, ).place(x=185, y=110)
 
         self.conf.wm_iconbitmap('pycryptor.ico')
-        self.conf.transient(root)
+        self.conf.transient(self.parent)
         self.conf.focus_set()
         self.conf.grab_set()
         self.conf.wait_window()
