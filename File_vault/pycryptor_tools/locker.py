@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Locker v4.1b (follows new protocol)
+# Locker v4.1 (follows new protocol)
 # Implemented as function
 #
 # =============================================================================
