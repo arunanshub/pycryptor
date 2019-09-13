@@ -41,14 +41,14 @@ and uses "AES-GCM" for encryption and decryption of files.
 
 Created with love by:
 1) Arunanshu Biswas (arunanshub)
-        Cryptographic File locking facilities
-        Multithreading Capabilities
-        ... plus all backend
+    Cryptographic File locking facilities
+    Multithreading Capabilities
+    ... plus all backend
 
-    2) Sagnik Haldar (hsagnik)
-        GUI Creation
-        Color Codes
-        ... plus all frontend
+2) Sagnik Haldar (hsagnik)
+    GUI Creation
+    Color Codes
+    ... plus all frontend
 
 Also Available at: http://github.com/arunanshub/pycryptor
     """
