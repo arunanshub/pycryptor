@@ -60,10 +60,8 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                    (encrypt or decrypt).
     :param flag: This is to identify if the method being used is
                  for encryption or decryption.
-                 If the *flag* is *True* then the *nonce* value
-                 is written to the end of the *new_file*.
-                 If the *flag* is *False*, then the *nonce* is written to
-                 *file_path*.
+                 If the flag is *True*, then file is encrypted, and
+                 decrypted otherwise.
     :param kwargs: salt, block_size, metadata
     :return: None
     """
@@ -103,7 +101,7 @@ def locker(file_path, password, remove=True, **kwargs):
     Encryption or decryption depends upon the file's extension.
     The user's encryption or decryption task is almost automated since
     *encryption* or *decryption* is determined by the file's extension.
-    
+
     :param file_path: File to be written on.
     :param password: Password to be used for encryption/decryption.
     :param remove: If set to True, the the file that is being
