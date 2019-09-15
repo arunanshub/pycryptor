@@ -52,10 +52,8 @@ def _writer(file_path, new_file, method, flag, **kwargs):
                    (encrypt or decrypt).
     :param flag: This is to identify if the method being used is
                  for encryption or decryption.
-                 If the *flag* is *True* then the *nonce* value
-                 is written to the end of the *new_file*.
-                 If the *flag* is *False*, then the *nonce* is written to
-                 *file_path*.
+                 If the flag is *True*, then file is encrypted, and
+                 decrypted otherwise.
     :param kwargs: salt, nonce, mac_func, block_size, metadata
     :return: None
     """
