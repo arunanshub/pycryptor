@@ -75,24 +75,26 @@ def _writer(file_path, new_file, method, flag, **kwargs):
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb') as infile:
         with open(new_file, 'wb+') as outfile:
+
             if flag:
                 meta_salt = pack(f'{meta_len}s32s', metadata, salt)
                 outfile.write(meta_salt)
-            else:
-                block_size += 12 + 16
-                infile.seek(meta_len + 32)
-
-            while True:
-                data = infile.read(block_size)
-                if not data:
-                    break
-                if flag:
+                while True:
+                    data = infile.read(block_size)
+                    if not data:
+                        break
                     nonce = os.urandom(12)
-                    part = data
-                    outfile.write(nonce + method(nonce=nonce, data=part))
-                else:
-                    nonce, part = data[:12], data[12:]
-                    outfile.write(method(nonce=nonce, data=part))
+                    outfile.write(nonce + method(nonce=nonce, data=data))
+
+            else:
+                infile.seek(meta_len + 32)
+                block_size += 12 + 16
+                while True:
+                    data = infile.read(block_size)
+                    if not data:
+                        break
+                    nonce, data = data[:12], data[12:]
+                    outfile.write(method(nonce=nonce, data=data))
 
 
 def locker(file_path, password, remove=True, **kwargs):
