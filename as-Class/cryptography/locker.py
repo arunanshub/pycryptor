@@ -245,8 +245,7 @@ class Locker:
                     raise ValueError(f'Cannot process with the same file.')
                 os.remove(new_file)
 
-        # Create a *password_hash* and *cipher* with
-        # required method.
+        # Create a *cipher* with the required method.
         cipher_obj = getattr(AESGCM(self.password_hash), self.method)
         crp = partial(cipher_obj, associated_data=self.metadata)
 
