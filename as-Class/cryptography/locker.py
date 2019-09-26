@@ -241,7 +241,7 @@ class Locker:
             new_file = self.file_path + self.ext
         else:
             if os.path.exists(new_file):
-                if os.path.samefile(file_path, new_file):
+                if os.path.samefile(self.file_path, new_file):
                     raise ValueError(f'Cannot process with the same file.')
                 os.remove(new_file)
 
