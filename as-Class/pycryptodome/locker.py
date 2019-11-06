@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 # Locker v4.0 (follows new protocol)
 # Implemented as class
 #
