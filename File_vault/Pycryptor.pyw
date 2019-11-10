@@ -8,6 +8,8 @@ from tkinter import ttk
 from tkinter.font import Font
 
 import sys
+
+# add `cryptography` module support
 try:
     # try checking for required module
     import Cryptodome
@@ -32,28 +34,11 @@ class MainApplication(tk.Frame):
     conf = None
     key_lens = (16, 24, 32)
 
-    version_no = "1.0.0"
+    version_no = "1.1.0"
 
+	# thinking of moving `help` and `about` msgs 
+	# in separate module
     aboutmsg = """Pycryptor v.{version}
-Pycryptor is a portable app for encryption and
-decryption of files. It is completely written in Python
-and uses "AES-GCM" for encryption and decryption of files.
-
-Created with love by:
-1) Arunanshu Biswas (arunanshub)
-    Cryptographic File locking facilities
-    Multithreading Capabilities
-    ... plus all backend
-
-2) Sagnik Haldar (hsagnik)
-    GUI Creation
-    Color Codes
-    ... plus all frontend
-
-Also Available at: http://github.com/arunanshub/pycryptor
-    """
-
-    help_msg = """Pycryptor v.{version}
 Pycryptor is a portable app for encryption and
 decryption of files. It is completely written in Python
 and uses "AES-GCM" for encryption and decryption of files.
@@ -64,6 +49,26 @@ Features:
 - No external dependencies needed
 (except for "pycryptodomex")
 - Fast file processing due to the use of threads
+
+Also Available at: https://github.com/arunanshub/pycryptor
+	"""
+	
+    credits = """Creators create...
+Pycryptor v.{version}
+	
+Created with love by:
+1) Arunanshu Biswas (arunanshub)
+	Cryptographic File locking facilities
+	Multithreading Capabilities
+	... plus all backend
+	(and GUI development)
+
+Also Available at: http://github.com/arunanshub/pycryptor
+    """
+	
+	# thinking of moving `help` and `about` msgs 
+	# in separate module
+    help_msg = """Pycryptor v.{version}
 
 Color codes:
 - Green  : Successful operation
@@ -78,6 +83,7 @@ This is NOT a bug, as Pycryptor continues the operation.
 It would be fixed later due to some unavoidable reasons,
 but other than that, everything is golden.
     """
+    
     config_help = """Help for Options>Configure:
 
     - Key length : Specify the key length.
@@ -149,16 +155,26 @@ but other than that, everything is golden.
                                   "Pycryptor",
                                   self.help_msg.format(version=self.version_no)
                                   ))
+
         filemenu2.add_separator()
         filemenu2.add_command(label="About",
                               command=lambda: messagebox.showinfo(
                                   "Pycryptor",
                                   self.aboutmsg.format(version=self.version_no)
                                   ))
+        filemenu2.add_command(label="Credits",
+							  command=lambda: messagebox.showinfo(
+							  	  "Credits",
+							  	  self.credits.format(version=self.version_no))
+							  	  )
+
         filemenu2.add_separator()
-        filemenu2.add_command(label="Visit Me on the Web",
+        filemenu2.add_command(label="Visit This app on GitHub",
                               command=lambda: webbrowser.open(
-                                  "https://bit.ly/342tT9b"))
+                                  "https://bit.ly/3708EGC"))
+        filemenu2.add_command(label="Visit Me on GitHub",
+                              command=lambda: webbrowser.open(
+                                  "https://bit.ly/2NWViSH"))                          
         filemenu2.add_command(label="About AES-GCM mode",
                               command=lambda: webbrowser.open(
                                   "https://bit.ly/2zP0BOf"))
@@ -226,11 +242,11 @@ but other than that, everything is golden.
         self.conf.geometry('270x145')
         self.conf.title('Pycryptor Configurations')
 
-        fr = LabelFrame(self.conf, text="Pycryptor Configuration", )
+        fr = LabelFrame(self.conf, text="Pycryptor Configuration")
         fr.place(x=10, y=10, height=90, width=250)
 
         # row 1
-        Label(fr, text="Encryption Extension:", ).place(x=5, y=5,)
+        Label(fr, text="Encryption Extension:", ).place(x=5, y=5)
         self.ext = ttk.Entry(fr, width=12)
         self.ext.insert(0, self.extension)
         self.ext.place(x=150, y=5)
@@ -239,7 +255,7 @@ but other than that, everything is golden.
         Label(fr, text="Key Length:", ).place(x=56, y=35)
 
         opm = ttk.OptionMenu(fr, self.dkey, self.dklen,
-                             *self.key_lens, )
+                             *self.key_lens)
         opm.config(width=8)
         opm.place(x=150, y=35)
 
@@ -251,12 +267,16 @@ but other than that, everything is golden.
                                                 ).place(x=10, y=110)
 
         ttk.Button(self.conf, text='Apply',  # apply button
-                   command=self.config_apply, ).place(x=97, y=110)
+                   command=self.config_apply).place(x=97, y=110)
 
         ttk.Button(self.conf, text='Cancel',  # cancel button
-                   command=self.conf.destroy, ).place(x=185, y=110)
-
-        self.conf.wm_iconbitmap('pycryptor.ico')
+                   command=self.conf.destroy).place(x=185, y=110)
+        
+        if sys.platform == 'win32':
+			# this is added because tkinter on linux raised
+			# an error when an app-icon was added.
+        	self.conf.wm_iconbitmap('pycryptor.ico')
+        
         self.conf.transient(self.parent)
         self.conf.focus_set()
         self.conf.grab_set()
@@ -272,10 +292,16 @@ but other than that, everything is golden.
 
 
 if __name__ == '__main__':
-    root = tk.Tk()
-    root.title("Pycryptor")
-    root.resizable(0, 0)
-    root.geometry("480x450")
-    MainApplication(root).pack(side="top", fill="both", expand=True)
-    root.wm_iconbitmap('pycryptor.ico')
-    root.mainloop()
+	root = tk.Tk()
+	root.title("Pycryptor")
+	root.resizable(0, 0)
+	root.geometry("480x450")
+
+	MainApplication(root).pack(side="top", fill="both", expand=True)
+	
+	if sys.platform == 'win32':
+		# this is added because tkinter on linux raised
+		# an error when an app-icon was added.
+		root.wm_iconbitmap('pycryptor.ico')
+
+	root.mainloop()
