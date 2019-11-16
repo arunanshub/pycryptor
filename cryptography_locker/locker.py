@@ -43,7 +43,7 @@ class DecryptionError(ValueError):
 def _writer(file_path, new_file, method, flag, **kwargs):
     """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
-    *new_file* with the provided method by looping through each line
+    *new_file* with the provided method by looping through each block
     of the file_path of fixed length, specified by *block_size*.
 
     Note: Since ``cryptography`` module's AESGCM encryption appends a MAC
@@ -125,7 +125,7 @@ def locker(file_path, password, remove=True, **kwargs):
     ext = kwargs.get('ext', '.0DAY')
     iterations = kwargs.get('iterations', 50000)
     dklen = kwargs.get('dklen', 32)
-    metadata = kwargs.get('metadata', b'Encrypted-using-Pycryptor')
+    metadata = kwargs.get('metadata', b'Encrypted-with-Pycryptor')
     algo = kwargs.get('algo', 'sha512')
     _method = kwargs.get('method')
     _new_file = kwargs.get('new_file')
