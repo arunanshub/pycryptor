@@ -85,7 +85,7 @@ class Locker:
     block_size = 64 * 1024
     iterations = 50000
     dklen = 32
-    metadata = b'Encrypted-using-Pycryptor'
+    metadata = b'Encrypted-with-Pycryptor'
     algo = 'sha512'
 
     def __init__(self, file_path, method='auto'):
