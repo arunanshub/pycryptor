@@ -1,65 +1,56 @@
-# pycryptor 
-A short, sweet, PoC Python Ransomware (+**A file vault for protecting the users files**) using Advanced Encryption Standards. 
-The program uses the __AES-GCM-256__ for its work.
 
-There are two flavors of the program, one is a simple __File Encryptor__ and the other is a simple and 
-effective multiplatform  __Python Ransomware__. The __File Vault__ was actually a school project, 
-but the idea of ransomware came to me because of the procedure I was using for encrypting the files.
+# pycryptor 
+A short, sweet, PoC Python Ransomware (+A file vault for protecting the users files) using 
+Advanced Encryption Standards. The program uses [__AES-GCM__](https://en.wikipedia.org/wiki/Galois/Counter_Mode) for its work.
+
+There are two flavors of the program, one is a __File Vault__ and the other is an 
+effective multi-platform  __Python Ransomware__.
 
 The `thread_locker` uses `concurrent.futures` thread pools for getting it's job done.
 
 
 ## Features
 
- - Uses AES-GCM-256 for encryption and decryption.
- - File is verified after decryption.
- - Fast encryption and decryption speeds.
+The python module `locker.py` uses [__AES-GCM__](https://en.wikipedia.org/wiki/Galois/Counter_Mode)
+for its work. By default, the key length is set to __256 bytes__.
+
+The locker's speeds are very impressive. Also, the `cryptography` locker's speeds are greater than
+`pycryptodome(x)` locker.
 
 |File size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
 |:-------:|:-------------------------:|:-------------------------:|
 |  84MB   |         0.321843          |         0.313680          |
 |  835MB  |         5.022431          |         4.948784          |
 
+(all tested in Google Colab)
 
 ## Additional Note
 
- - A seperate folder named as **`cryptography_locker`** contains the
-   same Locker file, but this one uses cryptography module instead. You
-   can replace the **original** `Locker.py` with this `Locker.py`
-   instead, it won't harm the functionality of the program.
+ - The folder `cryptography_locker` contains a ready-to-use locker,
+   which employs the functionality provided by `cryptography` module
    
- - __Encryption/Decryption speeds for this `Locker.py`__
+ - The folder `as_class` contains the same locker, but it is written as a class.
+
+Encryption/Decryption speeds for this `cryptography_locker/locker.py` </br>
 
 |File Size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
 |:-------:|:-------------------------:|:-------------------------:|
 |  85MB   |         0.220274          |         0.217195          |
 |  858MB  |         5.068394          |         4.854502          |
 
- - __`as-Class`__ folder contains both the Lockers, but they are implemented as a class.
+(all tested in Google Colab)
 
+## Before you use...
 
-## Warning note for both the Lockers–Read Me First
+File encrypted with `cryptography` module's locker cannot be decrypted with
+`pycryptodome(x)` module's locker and vice versa. Their implementation is very 
+different from each other. 
 
- - __Please note that the file encrypted with pycryptodome/Locker.py won't
-   be decrypted by this cryptography/Locker.py and vice versa. This is
-   due to the way pycryptodome and cryptography module works.__
+Although I suggest you to use the `cryptography` locker. It is faster than it's 
+`pycryptodome(x)` equivalent.
 
- - __Encrypt (or decrypt) the files with appropriate `Locker.py` *only*.
-   If you fail to do do so, unforseeable problems may destroy your
-   program logic.__
+## A note on the ransomware
 
----
-
-And as a final word of caution: 
-Cryptography is a very powerful yet sensitive thing. <br />
-If used properly, you get good results, but if you fail to do so, remember:
-
-### (Quoted directly from `cryptography/hazmat/__init__.py`)
-
-> __You should ONLY use it if you're 100% absolutely sure that you know  <br />
-> what you're doing because this program is full of land mines, dragons, <br />
-> and dinosaurs with laser guns.__
-
-## Objections–please follow this
-The Ransomware provided is meant only for educational purposes and __IS NOT MEANT FOR ANY MALICIOUS PURPOSES__. 
-I will not be responsible for any sort of damage caused to anyone's property.
+__The ransomware provided is for educational purposes only. I take NO 
+responsibilities for any misuse of the same. Although I am sure there won't
+be any... 😁__
