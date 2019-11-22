@@ -44,7 +44,6 @@ def thread_locker(file_list, password, mode, backend, **kwargs):
 
         while not file_queue.empty():
             _, file = file_queue.get_nowait()
-            print(__name__, 'changed', backend)
             future = exc.submit(backend.locker, file, password, **kwargs)
             future_states.append((future, file))
 
