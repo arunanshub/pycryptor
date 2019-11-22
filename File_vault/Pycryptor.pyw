@@ -1,98 +1,45 @@
 # GUI inspired from captainAyan/pycryptor
-
+import sys
+import pkgutil
 import tkinter as tk
 import webbrowser
 from tkinter import *
-from tkinter import messagebox
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from tkinter.font import Font
 
-import sys
+from toolkit import utility as util
+from toolkit.controller import Controller
 
-# add `cryptography` module support
-try:
-    # try checking for required module
-    import Cryptodome
-except ImportError:
+
+if not any(util.backends().values()):
     _ = Tk()
     _.withdraw()
-    messagebox.showerror("Pycryptor",
-                         "Pycryptor needs Cryptodome for encryption and "
-                         "decryption, but it was not found. Please "
-                         "configure your system properly.")
+    messagebox.showerror("Pycryptor", util.no_backend_error)
     sys.exit(1)
-
-from pycryptor_tools import utility as util
-from pycryptor_tools.controller import Controller
-
 
 class MainApplication(tk.Frame):
     extension = '.0DAY'
+    backend = util.get_backend()
+    backend_module = util.change_backend(backend)
     dklen = 32
-    dkey = None
-    ext = None
-    conf = None
+
+    # options for Option-Menu
     key_lens = (16, 24, 32)
+    backends = [k for k, v in util.backends().items() if v]
 
-    version_no = "1.1.0"
+    # Tk variables for Entry/Option-menus
+    # _dklen = None
+    # _backend
+    # ext = None
+    # conf = None
 
-	# thinking of moving `help` and `about` msgs 
-	# in separate module
-    aboutmsg = """Pycryptor v.{version}
-Pycryptor is a portable app for encryption and
-decryption of files. It is completely written in Python
-and uses "AES-GCM" for encryption and decryption of files.
+    version_no = "2.0.0"
 
-Features:
-- Completely customisable
-- Fully Open-Source
-- No external dependencies needed
-(except for "pycryptodomex")
-- Fast file processing due to the use of threads
-
-Also Available at: https://github.com/arunanshub/pycryptor
-	"""
-	
-    credits = """Creators create...
-Pycryptor v.{version}
-	
-Created with love by:
-1) Arunanshu Biswas (arunanshub)
-	Cryptographic File locking facilities
-	Multithreading Capabilities
-	... plus all backend
-	(and GUI development)
-
-Also Available at: http://github.com/arunanshub/pycryptor
-    """
-	
-	# thinking of moving `help` and `about` msgs 
-	# in separate module
-    help_msg = """Pycryptor v.{version}
-
-Color codes:
-- Green  : Successful operation
-- Purple : Skipped files
-- Yellow : Files not found
-- Red      : Failed operation
-
-Note:
-Sometimes, if big files are given for encryption
-(or decryption), Pycryptor stops responding.
-This is NOT a bug, as Pycryptor continues the operation.
-It would be fixed later due to some unavoidable reasons,
-but other than that, everything is golden.
-    """
-    
-    config_help = """Help for Options>Configure:
-
-    - Key length : Specify the key length.
-                   32 = AES-GCM-256
-                   24 = AES-GCM-192
-                   16 = AES-GCM-128
-
-    - Extension : Extension to be used for encrypted files
-    """
+    # general help, about, and formalities... :)
+    aboutmsg = util.aboutmsg
+    credits_ = util.credits_
+    help_msg = util.help_msg
+    config_help = util.config_help
 
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -163,10 +110,8 @@ but other than that, everything is golden.
                                   self.aboutmsg.format(version=self.version_no)
                                   ))
         filemenu2.add_command(label="Credits",
-							  command=lambda: messagebox.showinfo(
-							  	  "Credits",
-							  	  self.credits.format(version=self.version_no))
-							  	  )
+	  command=lambda: messagebox.showinfo("Credits",
+					      self.credits_.format(version=self.version_no)))
 
         filemenu2.add_separator()
         filemenu2.add_command(label="Visit This app on GitHub",
@@ -185,7 +130,8 @@ but other than that, everything is golden.
                                 command=lambda: ctrl.encrypt(
                                     password_input.get(),
                                     self.extension,
-                                    self.dklen),
+                                    self.dklen,
+                                    backend=self.backend_module),
                                 bg=util.color_accent_dark,
                                 fg=util.color_white,
                                 borderwidth=0,
@@ -195,7 +141,8 @@ but other than that, everything is golden.
                                 command=lambda: ctrl.decrypt(
                                     password_input.get(),
                                     self.extension,
-                                    self.dklen),
+                                    self.dklen,
+                                    backend=self.backend_module),
                                 bg=util.color_accent_dark,
                                 fg=util.color_white,
                                 borderwidth=0,
@@ -235,73 +182,101 @@ but other than that, everything is golden.
         # show menubar
         root.config(menu=menubar)
 
+        self._set_title()
+
     def config_box(self):
         self.conf = Toplevel(self.parent)
-        self.dkey = IntVar(self.conf, self.dklen, 'dklen')
+        self._dklen = IntVar(self.conf, self.dklen, '_dklen')
+        self._backend = StringVar(self.parent, self.backends[0], '_backend')
+        
         self.conf.resizable(0, 0)
-        self.conf.geometry('270x145')
+        self.conf.geometry('300x175')
         self.conf.title('Pycryptor Configurations')
 
+        # Elements of the config box
         fr = LabelFrame(self.conf, text="Pycryptor Configuration")
-        fr.place(x=10, y=10, height=90, width=250)
+        fr.place(x=10, y=10, height=120, width=280)
 
-        # row 1
+        # row 1 == Extension name
         Label(fr, text="Encryption Extension:", ).place(x=5, y=5)
-        self.ext = ttk.Entry(fr, width=12)
+        self.ext = ttk.Entry(fr, width=15)
         self.ext.insert(0, self.extension)
         self.ext.place(x=150, y=5)
 
-        # row 2
-        Label(fr, text="Key Length:", ).place(x=56, y=35)
-
-        opm = ttk.OptionMenu(fr, self.dkey, self.dklen,
+        # row 2 == Key length
+        Label(fr, text="Key Length:").place(x=70, y=35)
+        opm = ttk.OptionMenu(fr, self._dklen, self.dklen,
                              *self.key_lens)
-        opm.config(width=8)
+        opm.config(width=9)
         opm.place(x=150, y=35)
 
+        # row 3 == Default backend
+        Label(fr, text="Backend:").place(x=87, y=70)
+        opm2 = ttk.OptionMenu(fr, self._backend, self.backend,
+                              *self.backends)
+        opm2.config(width=9)
+        opm2.place(x=150, y=70)
+
         # after the frame
+        # the Buttons (Apply, Cancel, Help)
         ttk.Button(
             self.conf, text='Help',  # help button
             command=lambda: messagebox.showinfo("Configuration Help",
                                                 self.config_help)
-                                                ).place(x=10, y=110)
+                                                ).place(x=10, y=140)
 
         ttk.Button(self.conf, text='Apply',  # apply button
-                   command=self.config_apply).place(x=97, y=110)
+                   command=self.config_apply).place(x=108, y=140)
 
         ttk.Button(self.conf, text='Cancel',  # cancel button
-                   command=self.conf.destroy).place(x=185, y=110)
-        
+                   command=self.conf.destroy).place(x=206, y=140)
+
         if sys.platform == 'win32':
 			# this is added because tkinter on linux raised
 			# an error when an app-icon was added.
-        	self.conf.wm_iconbitmap('pycryptor.ico')
-        
+        	self.conf.iconbitmap('pycryptor.ico')
+
         self.conf.transient(self.parent)
         self.conf.focus_set()
         self.conf.grab_set()
         self.conf.wait_window()
 
     def config_apply(self):
+        
+        # check for extension validity
         if not re.fullmatch(r'^\.[\w|\d]+', self.ext.get()):
-            messagebox.showerror('Extension Error', 'Invalid Extension')
+            messagebox.showerror('Extension Error',
+                                 'Invalid Extension')
             return
-        self.dklen = self.dkey.get()
+
+        # set extension and key length
+        self.dklen = self._dklen.get()
         self.extension = self.ext.get()
+
+        # change the backend name and Title of the app :)
+        self.backend = self._backend.get()
+        self._set_title(f"Pycryptor - using backend {self.backend}")
+        
+        # change the backend module to the user's option.
+        self.backend_module = util.change_backend(self.backend)
         self.conf.destroy()
 
 
+    def _set_title(self, title=None):
+        default = f"Pycryptor - using backend {self.backend}"
+        self.parent.title(title or default)
+
+
 if __name__ == '__main__':
-	root = tk.Tk()
-	root.title("Pycryptor")
-	root.resizable(0, 0)
-	root.geometry("480x450")
+    root = tk.Tk()
+    root.resizable(0, 0)
+    root.geometry("480x450")
 
-	MainApplication(root).pack(side="top", fill="both", expand=True)
-	
-	if sys.platform == 'win32':
-		# this is added because tkinter on linux raised
-		# an error when an app-icon was added.
-		root.wm_iconbitmap('pycryptor.ico')
+    MainApplication(root).pack(side="top", fill="both", expand=True)
 
-	root.mainloop()
+    if sys.platform == 'win32':
+        # this is added because tkinter on linux raised
+        # an error when an app-icon was added.
+        root.iconbitmap('pycryptor.ico')
+
+    root.mainloop()
