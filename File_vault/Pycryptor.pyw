@@ -183,6 +183,7 @@ class MainApplication(tk.Frame):
         root.config(menu=menubar)
 
         self._set_title()
+	self.parent.protocol('WM_DELETE_WINDOW', self.parent.destroy)
 
     def config_box(self):
         self.conf = Toplevel(self.parent)
