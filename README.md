@@ -22,9 +22,11 @@ uses the backend [cryptography][7].
 
 Find the locker module's README [here][3].
 
+A class based `locker` is also there, which is **just an experiment**. Learn more about
+it [here][8].
 
-How fast are the lockers?
----
+
+## How fast are the lockers?
 
 The locker's speeds are very impressive. Also, the `crylocker.py` speeds are greater
 than `pylocker.py`, which can be found in [Pycryptor's backend][3].
@@ -47,6 +49,7 @@ Encryption/Decryption speeds for [`crylocker.py`][5]:
 
 (all tested in Google Colab)
 
+
 ## Before you use...
 
 File encrypted with [`crylocker.py`][5] cannot be decrypted with
@@ -54,6 +57,7 @@ File encrypted with [`crylocker.py`][5] cannot be decrypted with
 is very different from each other. 
 
 Although I suggest you to use the `crylocker.py`. It is faster than `pylocker.py`.
+
 
 ## A note on the ransomware...
 
@@ -69,4 +73,5 @@ be any... 😁__
 [5]: <File_vault/toolkit/backends/crylocker.py>
 [6]: <https://github.com/Legrandin/pycryptodome#pycryptodome>
 [7]: <https://github.com/pyca/cryptography#pycacryptography>
+[8]: <as_class/README.md#locker-as-class>
 
