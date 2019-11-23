@@ -23,7 +23,7 @@ to me. This would help me to improve this app in the long run.
  - [ ] Improve the large/multiple file locking speed, and prevent it from hanging.
  - [ ] Perform some cleanup of the backend `lockers`.
  - [ ] Add some documentation to the app source code.
- - [ ] Add documentaton to the `lockers`.
+ - [x] Add documentaton to the `lockers`.
 
 and maybe...
  - [ ] convert it to a stanalone app?
