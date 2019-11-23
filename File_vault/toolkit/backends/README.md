@@ -75,10 +75,11 @@ Both the modules are quite straightforward to use
 	# then the file would be locked with the given params.
 	```
 	
-	Changing the method used by the locker
+	Changing the method(or mode) used by the locker
+	
 	```python
 	# Suppose you have a file 'foolocked.txt' and you want
-	# to decrypt it, without 
+	# to decrypt it.
 	
 	>>> locker('foolocked.txt', b'helloworld',
 		   method='decrypt',
