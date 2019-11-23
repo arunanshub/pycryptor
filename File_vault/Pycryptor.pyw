@@ -116,7 +116,7 @@ class MainApplication(tk.Frame):
         filemenu2.add_separator()
         filemenu2.add_command(label="Visit This app on GitHub",
                               command=lambda: webbrowser.open(
-                                  "https://bit.ly/3708EGC"))
+                                  "https://bit.ly/2QQGRTr"))
         filemenu2.add_command(label="Visit Me on GitHub",
                               command=lambda: webbrowser.open(
                                   "https://bit.ly/2NWViSH"))                          
