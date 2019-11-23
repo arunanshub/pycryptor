@@ -19,10 +19,10 @@ Both the modules are quite straightforward to use
 	>>> import os
 	>>> from crylocker import locker
 	>>> print(os.listdir('.'))
-	['file.txt', 'extchange.txt']
+	['lockme.txt', 'extchange.txt']
 	>>> locker('file.txt', b'helloworld')
 	>>> print(os.listdir('.'))
-	['file.txt.0DAY', 'extchange.txt']
+	['lockme.txt.0DAY', 'extchange.txt']
 	```
 
 	Changing the extension and keeping the original file.
