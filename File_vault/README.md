@@ -4,7 +4,8 @@
 
 A pure Python file vault, backed by the powerful cryptographic libraries, namely 
 [`Pycryptodome(x)`][1] and [`cryptography`][2]. Inspired by the other cryptographic 
-file locking apps on the internet today, this app was born to serve the same purpose, although faster and in and Open-source manner :)
+file locking apps on the internet today, this app was born to serve the same purpose, 
+although faster and in an Open-source manner :)
 
 
 ## Features
@@ -20,7 +21,7 @@ to me. This would help me to improve this app in the long run.
 ## Future plans for the App
 
  - [x] Add multiple backend support for the app
- - [ ] Shift the hyperlink to [`toolkit/utility.py`][4]
+ - [ ] Shift the hyperlinks in the app to [`toolkit/utility.py`][4]
  - [ ] Improve the large/multiple file locking speed, and prevent it from hanging.
  - [ ] Perform some cleanup of the backend `lockers`.
  - [ ] Add some documentation to the app source code.
