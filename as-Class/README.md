@@ -1,5 +1,8 @@
 # Locker (as Class)
 
+__This is just an experiment and I suggest not to use this. Instead use
+the functional `locker` which can be found [here][1].__
+
 - Here the Locker(s) are implemented as `class`. Here's how you would use them:-
 		
 	```python
@@ -30,3 +33,5 @@
 > construction. So if there is a bug that catches your attention, 
 > please let me know. This will help me to improve the code for
 > better.
+
+[1]: <../File_vault/toolkit/backends/README.md#the-core>
