@@ -1,9 +1,10 @@
 
+
 # Pycryptor - The File Vault
 
 A pure Python file vault, backed by the powerful cryptographic libraries, namely 
 [`Pycryptodome(x)`][1] and [`cryptography`][2]. Inspired by the other cryptographic 
-file locking apps on the internet today, this app 
+file locking apps on the internet today, this app was born to serve the same purpose, although faster and in and Open-source manner :)
 
 
 ## Features
@@ -22,7 +23,7 @@ to me. This would help me to improve this app in the long run.
  - [ ] Improve the large/multiple file locking speed, and prevent it from hanging.
  - [ ] Perform some cleanup of the backend `lockers`.
  - [ ] Add some documentation to the app source code.
- - [ ] Add documentaton to the `lockers`
+ - [ ] Add documentaton to the `lockers`.
 
 and maybe...
  - [ ] convert it to a stanalone app?
