@@ -20,7 +20,7 @@ to me. This would help me to improve this app in the long run.
 ## Future plans for the App
 
  - [x] Add multiple backend support for the app
- - [ ] Shift the hyperlink to `toolkit/utility.py`[4]
+ - [ ] Shift the hyperlink to [`toolkit/utility.py`][4]
  - [ ] Improve the large/multiple file locking speed, and prevent it from hanging.
  - [ ] Perform some cleanup of the backend `lockers`.
  - [ ] Add some documentation to the app source code.
