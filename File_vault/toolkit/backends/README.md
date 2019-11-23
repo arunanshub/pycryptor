@@ -1,8 +1,12 @@
 # The core
 
-This is the core of Pycryptor. These two modules can be used as standalone file lockers.
-
+This is the core of Pycryptor. These two modules [`pylocker.py`][1] and [`crylocker.py`][2]
+can be used as standalone file lockers.
 Actually, that was my idea for this repo. But eventually, the app was made (and the rest is Pycryptor).
+
+The `crylocker.py` module uses `cryptography` as it's backend and the `pylocker.py` module
+uses the `pycryptodome` module.
+
 
 # Using the modules
 
@@ -96,3 +100,5 @@ Both the modules are quite straightforward to use
 	# A file with name 'foo_unlocked.txt' would be created.
 	```
 
+[1]: <pylocker.py>
+[2]: <crylocker.py>
