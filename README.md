@@ -15,19 +15,18 @@ The `thread_locker` uses `concurrent.futures` thread pools for getting it's job 
 The python module `locker.py` uses [__AES-GCM__][1]
 for its work. By default, the key length is set to __256 bits__.
 
-The locker's speeds are very impressive. Also, the `cryptography` locker's speeds are greater
-than `pycryptodome(x)` locker, which can be found in [Pycryptor's backend][3]
-
-
+The locker's speeds are very impressive. Also, the `crylocker.py` speeds are greater
+than `pylocker.py`, which can be found in [Pycryptor's backend][3].
 
 
 ## A word about the lockers...
 
 The `locker` module can be used in a standalone way in other applications. Initially, it was created to provide the file locking/unlocking provision to the app, but eventually it became mature enough to be used as a standalone API.
 
-Here, **`pylocker.py`** uses the backend [Pycryptodome(x)][6] and **`crylocker.py`** uses the backend [cryptography][7]
+Here, **`pylocker.py`** uses the backend [Pycryptodome(x)][6] and **`crylocker.py`** uses the backend [cryptography][7].
 
-Find the module's README [here][3].
+Find the locker module's README [here][3].
+
 
 How fast are the lockers?
 ---
@@ -66,9 +65,8 @@ be any... 😁__
 
 [1]: <https://en.wikipedia.org/wiki/Galois/Counter_Mode>
 [2]: <File_vault/README.md>
-[3]: <File_vault/toolkit/backends/README.md>
+[3]: <File_vault/toolkit/backends/README.md#the-core>
 [4]: <File_vault/toolkit/backends/pylocker.py>
 [5]: <File_vault/toolkit/backends/crylocker.py>
 [6]: <https://github.com/Legrandin/pycryptodome#pycryptodome>
 [7]: <https://github.com/pyca/cryptography#pycacryptography>
-
