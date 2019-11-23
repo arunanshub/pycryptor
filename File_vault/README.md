@@ -36,5 +36,5 @@ and maybe...
 [2]: <https://github.com/pyca/cryptography#pycacryptography> 
 "pyca/cryptography - a package which provides cryptographic recipes and primitives 
 to Python developers."
-[3]: <toolkit/backends/README.md>
+[3]: <toolkit/backends/README.md#the-core>
 "The spine and bone of the app... :)"
