@@ -21,6 +21,7 @@ to me. This would help me to improve this app in the long run.
 ## Future plans for the App
 
  - [x] Add multiple backend support for the app
+ - [x] Make [`crylocker.py`][5] compatible with [`pylocker.py`][6]
  - [ ] Shift the hyperlinks in the app to [`toolkit/utility.py`][4]
  - [ ] Improve the large/multiple file locking speed, and prevent it from hanging.
  - [x] Perform some cleanup of the backend `lockers`.
@@ -41,3 +42,5 @@ to Python developers."
 [3]: <toolkit/backends/README.md#the-core>
 "The spine and bone of the app... :)"
 [4]: <toolkit/utility.py>
+[5]: <toolkit/backends/crylocker.py>
+[6]: <toolkit/backends/pylocker.py>
