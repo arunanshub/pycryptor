@@ -1,4 +1,3 @@
-
 # pycryptor 
 
 A short, sweet, PoC Python Ransomware (+A file vault for protecting the users files)
@@ -10,6 +9,7 @@ effective multi-platform  __Python Ransomware__.
 
 The `thread_locker` uses `concurrent.futures` thread pools for getting it's job done.
 
+<br>
 
 ## A word about the lockers...
 
@@ -20,11 +20,14 @@ to the app, but eventually it became mature enough to be used as a standalone AP
 Here, **`pylocker.py`** uses the backend [Pycryptodome(x)][6] and **`crylocker.py`** 
 uses the backend [cryptography][7].
 
+Both the lockers are compatible with each other, with is a good news!
+
 Find the locker module's README [here][3].
 
 A class based `locker` is also there, which is **just an experiment**. Learn more about
 it [here][8].
 
+<br>
 
 ## How fast are the lockers?
 
@@ -49,15 +52,7 @@ Encryption/Decryption speeds for [`crylocker.py`][5]:
 
 (all tested in Google Colab)
 
-
-## Before you use...
-
-File encrypted with [`crylocker.py`][5] cannot be decrypted with
-[`pylocker.py`][4] module's locker and vice versa. Their implementation 
-is very different from each other. 
-
-Although I suggest you to use the `crylocker.py`. It is faster than `pylocker.py`.
-
+<br>
 
 ## A note on the ransomware...
 
