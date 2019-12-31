@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-# Locker v0.4.2 (follows new protocol)
+# Locker v0.4.3 (follows new protocol)
 # Implemented as function
 #
 # =============================================================================
 # MIT License
 
-# Copyright (c) 2019 Arunanshu Biswas
+# Copyright (c) 2020 Arunanshu Biswas
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -70,6 +70,8 @@ def _writer(file_path, new_file, method, flag, salt,
     """
 
     meta_len = len(metadata)
+    nonce_len = len(nonce)
+    salt_len = len(salt)
 
     os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb') as infile:
@@ -84,7 +86,7 @@ def _writer(file_path, new_file, method, flag, salt,
 
             else:
                 # Moving ahead towards the encrypted data.
-                infile.seek(meta_len + 16 + 12 + 32)
+                infile.seek(meta_len + 16 + nonce_len + salt_len)
 
             # create an iterable object for getting blocks.
             # this is a recipe from Python Cookbook.
