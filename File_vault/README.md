@@ -23,9 +23,9 @@ to me. This would help me to improve this app in the long run.
  - [x] Add multiple backend support for the app
  - [x] Make [`crylocker.py`][5] compatible with [`pylocker.py`][6]
  - [ ] Shift the hyperlinks in the app to [`toolkit/utility.py`][4]
- - [ ] Improve the large/multiple file locking speed, and prevent it from hanging.
+ - [x] Improve the large/multiple file locking speed, and prevent it from hanging.
  - [x] Perform some cleanup of the backend `lockers`.
- - [ ] Add some documentation to the app source code.
+ - [x] Add some documentation to the app source code.
  - [x] Add documentaton to the `lockers`.
 
 and maybe...
