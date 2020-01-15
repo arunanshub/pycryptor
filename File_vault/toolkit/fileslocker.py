@@ -3,28 +3,31 @@ from collections import deque
 from concurrent import futures
 from queue import PriorityQueue
 
-from . import utility as util
 
-# TODO: improve condition here...
-
-def thread_locker(file_list, password, mode, backend, **kwargs):
+def files_locker(file_list, password, mode, backend, **kwargs):
     """
+    This encrypts/decypts multiple files simultaneously by initiating
+    a Process Pool. The `max_number` of process is `os.cpu_count() // 2`
+    by default.
+
     :param file_list: iterable having valid file paths
-    :param password: bytes object of any length. (recommended length >8)
+    :param password: bytes object of any length. (recommended length > 8)
     :param mode: 'encrypt' or 'decrypt'
     :param locker: the locker module to use (for dynamic switching)
     :param kwargs: "all `kwargs` compatible with locker + max nos. of threads.
     :return: dictionary showing which files were processed successfully.
     """
+    if not isinstance(password, bytes):
+        raise TypeError("password must be a bytes object.")
     ext = kwargs.get('ext', '.0DAY')
 
-    cpu_nos = kwargs.get('max_nos') or os.cpu_count()
+    cpu_nos = kwargs.get('max_nos') or (os.cpu_count() // 2)
     file_queue = PriorityQueue()
     future_states = deque()
-    stats = {'FNF': deque(), 'FAIL': deque(), 'SUC': deque(), 'INV': deque()}
+    stats = {'FNF': deque(), 'FAIL': deque(), 'SUC': [], 'INV': []}
     files = iter(file_list)
 
-    with futures.ThreadPoolExecutor(max_workers=cpu_nos) as exc:
+    with futures.ProcessPoolExecutor(max_workers=cpu_nos) as exc:
         for file in files:
             try:
                 if mode == 'encrypt':
