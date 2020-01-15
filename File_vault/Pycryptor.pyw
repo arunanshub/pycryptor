@@ -35,7 +35,7 @@ class MainApplication(tk.Frame):
     # ext = None
     # conf = None
 
-    version_no = "2.0.0"
+    version_no = "2.1.0"
 
     # general help, about, and formalities... :)
     aboutmsg = util.aboutmsg
