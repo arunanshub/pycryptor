@@ -68,5 +68,4 @@ be any... 😁__
 [5]: <File_vault/toolkit/backends/crylocker.py>
 [6]: <https://github.com/Legrandin/pycryptodome#pycryptodome>
 [7]: <https://github.com/pyca/cryptography#pycacryptography>
-[8]: <as_class/README.md#locker-as-class>
-
+[8]: <as-Class/README.md#locker-as-class>
