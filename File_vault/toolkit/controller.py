@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from tkinter import filedialog, messagebox, ttk, Toplevel
+from tkinter import filedialog, messagebox, ttk, Toplevel, TclError
 
 from . import utility as util
 from .fileslocker import files_locker
@@ -102,7 +102,7 @@ class Controller:
                     _wbox.grab_set()
                     _wbox.transient(self.parent)
                     _wbox.mainloop()
-                except tk.TclError:
+                except TclError:
                     pass
 
     def _show_result(self, stats, method):
