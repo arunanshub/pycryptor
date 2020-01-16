@@ -1,7 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from tkinter.font import Font
+from tkinter import filedialog, messagebox, ttk, Toplevel
 
 from . import utility as util
 from .fileslocker import files_locker
@@ -180,12 +178,10 @@ class Controller:
         Creates a waitbox while the app is running.
         This prevents the app from hanging. (call it a cool hack or whatever)
         """
-        font = Font(size=14, weight='bold')
-        top = tk.Toplevel(self.parent)
-        tk.Label(
+        top = Toplevel(self.parent)
+        ttk.Label(
             top,
             text=util.waitbox_msg.format(method=method),
-            font=font
         ).pack(anchor='center')
         top.title("Please wait...")
         top.resizable(0, 0)
