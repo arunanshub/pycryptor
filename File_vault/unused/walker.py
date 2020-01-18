@@ -1,7 +1,7 @@
 import os
 
 
-def walker(path, exts=None):
+def walker(path, exts=None, *, absolute=False):
     """
     This function recursively walks into a specified
     directory *file_path* and yields (i.e., creates generator
@@ -10,8 +10,12 @@ def walker(path, exts=None):
     `exts` is an iterable with all extensions to be included
     in `walker`'s output. If `exts` is specified, then the 
     files which ends with it are only yielded.
+
+    If `absolute` argument is set to `True`, then the absolute
+    path of the files are yielded.
     """
-    path = os.path.abspath(path)
+    if absolute:
+        path = os.path.abspath(path)
     for (root, _, files) in os.walk(path):
         for each in files:
             if exts is not None:
