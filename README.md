@@ -2,14 +2,10 @@
 
 A short, sweet, PoC Python Ransomware (+A file vault for protecting the users files)
 using Advanced Encryption Standards. The program uses 
-[__AES-GCM__][1] for its work. 
-
+[__AES-GCM__][1] for its work. <br>
 There are two flavors of the program, one is a [__File Vault__][2] and the other is an
-effective multi-platform  __Python Ransomware__.
+effective multi-platform  __Python Ransomware__(and it is incomplete).
 
-The `thread_locker` uses `concurrent.futures` thread pools for getting it's job done.
-
-<br>
 
 ## A word about the lockers...
 
@@ -18,41 +14,38 @@ Initially, it was created to provide the file locking/unlocking provision
 to the app, but eventually it became mature enough to be used as a standalone API.
 
 Here, **`pylocker.py`** uses the backend [Pycryptodome(x)][6] and **`crylocker.py`** 
-uses the backend [cryptography][7].
-
-Both the lockers are compatible with each other, with is a good news!
+uses the backend [cryptography][7]. Both the lockers are compatible with each other, 
+which is a good news!
 
 Find the locker module's README [here][3].
 
 A class based `locker` is also there, which is **just an experiment**. Learn more about
 it [here][8].
 
-<br>
 
 ## How fast are the lockers?
 
 The locker's speeds are very impressive. Also, the `crylocker.py` speeds are greater
 than `pylocker.py`, which can be found in [Pycryptor's backend][3].
 
-Encryption/Decryption speeds for [`pylocker.py`][4]:
+- Encryption/Decryption speeds for [`pylocker.py`][4]:
 
-|File size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
-|:-------:|:-------------------------:|:-------------------------:|
-|  84MB   |         0.321843          |         0.313680          |
-|  835MB  |         5.022431          |         4.948784          |
+  |File size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
+  |:-------:|:-------------------------:|:-------------------------:|
+  |  84MB   |         0.321843          |         0.313680          |
+  |  835MB  |         5.022431          |         4.948784          |
 
 ---
 
-Encryption/Decryption speeds for [`crylocker.py`][5]:
+- Encryption/Decryption speeds for [`crylocker.py`][5]:
 
-|File Size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
-|:-------:|:-------------------------:|:-------------------------:|
-|  85MB   |         0.220274          |         0.217195          |
-|  858MB  |         5.068394          |         4.854502          |
+  |File Size|Encryption Speed (in secs.)|Decryption Speed (in secs.)|
+  |:-------:|:-------------------------:|:-------------------------:|
+  |  85MB   |         0.220274          |         0.217195          |
+  |  858MB  |         5.068394          |         4.854502          |
 
 (all tested in Google Colab)
 
-<br>
 
 ## A note on the ransomware...
 
