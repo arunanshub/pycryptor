@@ -26,7 +26,6 @@
 # SOFTWARE.
 # =============================================================================
 
-
 import hashlib
 import os
 import stat
@@ -46,8 +45,8 @@ class DecryptionError(ValueError):
     pass
 
 
-def _writer(file_path, new_file, method, flag, salt,
-            nonce, mac_func, block_size, metadata):
+def _writer(file_path, new_file, method, flag, salt, nonce, mac_func,
+            block_size, metadata):
     """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each block
@@ -100,9 +99,18 @@ def _writer(file_path, new_file, method, flag, salt,
                 outfile.write(mac_func())
 
 
-def locker(file_path, password, remove=True, method=None, new_file=None,
-           block_size=64 * 1024, ext='.0DAY', iterations=50000, dklen=32,
-           metadata=b'Encrypted-with-Pycryptor', algo='sha512', salt_len=32,
+def locker(file_path,
+           password,
+           remove=True,
+           method=None,
+           new_file=None,
+           block_size=64 * 1024,
+           ext='.0DAY',
+           iterations=50000,
+           dklen=32,
+           metadata=b'Encrypted-with-Pycryptor',
+           algo='sha512',
+           salt_len=32,
            nonce_len=12):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
@@ -170,16 +178,19 @@ def locker(file_path, password, remove=True, method=None, new_file=None,
         mac = None
 
     # Create a *password_hash* and *cipher* with required method.
-    password_hash = hashlib.pbkdf2_hmac(algo, password,
-                                        salt, iterations, dklen)
+    password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
+                                        dklen)
     cipher_obj = AES.new(password_hash, AES.MODE_GCM, nonce=nonce)
     crp = getattr(cipher_obj.update(metadata), method)
 
-    _writer(file_path, new_file,
-            crp, flag,
+    _writer(file_path,
+            new_file,
+            crp,
+            flag,
             nonce=nonce,
             mac_func=cipher_obj.digest,
-            salt=salt, block_size=block_size,
+            salt=salt,
+            block_size=block_size,
             metadata=metadata)
 
     if not flag:
@@ -187,7 +198,8 @@ def locker(file_path, password, remove=True, method=None, new_file=None,
             cipher_obj.verify(mac)
         except ValueError:
             os.remove(new_file)
-            raise DecryptionError('Invalid Password or tampered data.') from None
+            raise DecryptionError(
+                'Invalid Password or tampered data.') from None
 
     if remove:
         os.remove(file_path)
