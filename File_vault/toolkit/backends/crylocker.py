@@ -55,6 +55,7 @@ def _get_cipher(key, nonce, flag):
 def locker(file_path,
            password,
            remove=True,
+           *,
            method=None,
            new_file=None,
            block_size=64 * 1024,
