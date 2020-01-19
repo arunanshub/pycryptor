@@ -45,60 +45,6 @@ class DecryptionError(ValueError):
     pass
 
 
-def _writer(file_path, new_file, method, flag, salt, nonce, mac_func,
-            block_size, metadata):
-    """Facilitates reading/writing to/from file.
-    This function facilitates reading from *file_path* and writing to
-    *new_file* with the provided method by looping through each block
-    of the file_path of fixed length, specified by *block_size*.
-
-    :param file_path: File to be written on.
-    :param new_file: Name of the encrypted/decrypted file to written upon.
-    :param method: The way in which the file must be overwritten.
-                   (encrypt or decrypt).
-    :param flag: This is to identify if the method being used is for
-                 encryption or decryption.
-                 If the flag is *True*, then file is encrypted, and
-                 decrypted otherwise.
-    :param salt: Salt from the PBKDF2
-    :param metadata: Associated data to be written to the file
-    :param block_size: Reading block size, in bytes.
-    :param mac_func: bound method of AES object for calculating MAC-tag.
-    :param nonce: nonce used with the key.
-    :return: None
-    """
-
-    meta_len = len(metadata)
-    nonce_len = len(nonce)
-    salt_len = len(salt)
-
-    os.chmod(file_path, stat.S_IRWXU)
-    with open(file_path, 'rb') as infile:
-        with open(new_file, 'wb+') as outfile:
-            outfile_write = outfile.write
-            if flag:
-                # Create a placeholder for writing the *mac*.
-                # and append *nonce* and *salt* before encryption.
-                # Also, add a metadata indicating encrypted file.
-                plh_nonce_salt = metadata + (b'\x00' * 16) + nonce + salt
-                outfile_write(plh_nonce_salt)
-
-            else:
-                # Moving ahead towards the encrypted data.
-                infile.seek(meta_len + 16 + nonce_len + salt_len)
-
-            # create an iterable object for getting blocks.
-            # this is a recipe from Python Cookbook.
-            blocks = iter(partial(infile.read, block_size), b'')
-            for data in blocks:
-                outfile_write(method(data))
-
-            # write mac-tag to the file.
-            if flag:
-                outfile.seek(meta_len)
-                outfile.write(mac_func())
-
-
 def locker(file_path,
            password,
            remove=True,
@@ -203,3 +149,57 @@ def locker(file_path,
 
     if remove:
         os.remove(file_path)
+
+
+def _writer(file_path, new_file, method, flag, salt, nonce, mac_func,
+            block_size, metadata):
+    """Facilitates reading/writing to/from file.
+    This function facilitates reading from *file_path* and writing to
+    *new_file* with the provided method by looping through each block
+    of the file_path of fixed length, specified by *block_size*.
+
+    :param file_path: File to be written on.
+    :param new_file: Name of the encrypted/decrypted file to written upon.
+    :param method: The way in which the file must be overwritten.
+                   (encrypt or decrypt).
+    :param flag: This is to identify if the method being used is for
+                 encryption or decryption.
+                 If the flag is *True*, then file is encrypted, and
+                 decrypted otherwise.
+    :param salt: Salt from the PBKDF2
+    :param metadata: Associated data to be written to the file
+    :param block_size: Reading block size, in bytes.
+    :param mac_func: bound method of AES object for calculating MAC-tag.
+    :param nonce: nonce used with the key.
+    :return: None
+    """
+
+    meta_len = len(metadata)
+    nonce_len = len(nonce)
+    salt_len = len(salt)
+
+    os.chmod(file_path, stat.S_IRWXU)
+    with open(file_path, 'rb') as infile:
+        with open(new_file, 'wb+') as outfile:
+            outfile_write = outfile.write
+            if flag:
+                # Create a placeholder for writing the *mac*.
+                # and append *nonce* and *salt* before encryption.
+                # Also, add a metadata indicating encrypted file.
+                plh_nonce_salt = metadata + (b'\x00' * 16) + nonce + salt
+                outfile_write(plh_nonce_salt)
+
+            else:
+                # Moving ahead towards the encrypted data.
+                infile.seek(meta_len + 16 + nonce_len + salt_len)
+
+            # create an iterable object for getting blocks.
+            # this is a recipe from Python Cookbook.
+            blocks = iter(partial(infile.read, block_size), b'')
+            for data in blocks:
+                outfile_write(method(data))
+
+            # write mac-tag to the file.
+            if flag:
+                outfile.seek(meta_len)
+                outfile.write(mac_func())
