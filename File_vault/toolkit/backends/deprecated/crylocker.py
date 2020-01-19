@@ -5,7 +5,7 @@
 # =============================================================================
 # MIT License
 
-# Copyright (c) 2019 Arunanshu Biswas
+# Copyright (c) 2020 Arunanshu Biswas
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -39,8 +39,8 @@ class DecryptionError(ValueError):
     pass
 
 
-def _writer(file_path, new_file, method, flag, salt,
-            block_size, metadata, nonce_len):
+def _writer(file_path, new_file, method, flag, salt, block_size, metadata,
+            nonce_len):
     """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each block
@@ -56,7 +56,7 @@ def _writer(file_path, new_file, method, flag, salt,
     :param file_path: File to be written on.
     :param new_file: Name of the encrypted/decrypted file to written upon.
     :param method: The way in which the file must be overwritten.
-        	   (encrypt or decrypt).
+                   (encrypt or decrypt).
     :param flag: This is to identify if the method being used is
                  for encryption or decryption.
                  If the flag is *True*, then file is encrypted, and
@@ -93,11 +93,20 @@ def _writer(file_path, new_file, method, flag, salt,
                     outfile_write(method(nonce=nonce, data=data))
 
 
-def locker(file_path, password, remove=True, *,
-           new_file=None, block_size=64 * 1024, ext='.0DAY',
-           iterations=50000, dklen=32,
+def locker(file_path,
+           password,
+           remove=True,
+           *,
+           new_file=None,
+           block_size=64 * 1024,
+           ext='.0DAY',
+           iterations=50000,
+           dklen=32,
            metadata=b'Encrypted-with-Pycryptor',
-           algo='sha512', method=None, salt_len=32, nonce_len=12):
+           algo='sha512',
+           method=None,
+           salt_len=32,
+           nonce_len=12):
     """Provides cryptographic file locking/unlocking mechanism.
     This function either encrypts or decrypts the file - *file_path*.
     Encryption or decryption depends upon the file's extension.
@@ -163,14 +172,17 @@ def locker(file_path, password, remove=True, *,
 
     # Create a *password_hash* and *cipher* with
     # required method.
-    password_hash = hashlib.pbkdf2_hmac(algo, password,
-                                        salt, iterations, dklen)
+    password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
+                                        dklen)
     cipher_obj = getattr(AESGCM(password_hash), method)
     crp = partial(cipher_obj, associated_data=metadata)
 
     try:
-        _writer(file_path, new_file,
-                crp, flag, salt=salt,
+        _writer(file_path,
+                new_file,
+                crp,
+                flag,
+                salt=salt,
                 block_size=block_size,
                 metadata=metadata,
                 nonce_len=nonce_len)
