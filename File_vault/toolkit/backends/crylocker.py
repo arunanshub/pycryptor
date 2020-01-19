@@ -44,17 +44,26 @@ class DecryptionError(InvalidTag):
 
 def _get_cipher(key, nonce, flag):
     """Get the Cipher object with required mode."""
-    if flag:    
-        return Cipher(AES(key), modes.GCM(nonce), 
+    if flag:
+        return Cipher(AES(key), modes.GCM(nonce),
                       default_backend()).encryptor()
-    else:    
-        return Cipher(AES(key), modes.GCM(nonce), 
+    else:
+        return Cipher(AES(key), modes.GCM(nonce),
                       default_backend()).decryptor()
 
 
-def locker(file_path, password, remove=True, method=None, new_file=None,
-           block_size=64 * 1024, ext='.0DAY', iterations=50000, dklen=32,
-           metadata=b'Encrypted-with-Pycryptor', algo='sha512', salt_len=32,
+def locker(file_path,
+           password,
+           remove=True,
+           method=None,
+           new_file=None,
+           block_size=64 * 1024,
+           ext='.0DAY',
+           iterations=50000,
+           dklen=32,
+           metadata=b'Encrypted-with-Pycryptor',
+           algo='sha512',
+           salt_len=32,
            nonce_len=12):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
@@ -87,7 +96,7 @@ def locker(file_path, password, remove=True, method=None, new_file=None,
             if os.path.samefile(file_path, new_file):
                 raise ValueError(f'Cannot process with the same file.')
             os.remove(new_file)
-            
+
     # check for method validity
     if method is not None:
         if method not in ['encrypt', 'decrypt']:
@@ -116,19 +125,23 @@ def locker(file_path, password, remove=True, method=None, new_file=None,
         nonce = os.urandom(nonce_len)
         salt = os.urandom(salt_len)
         mac = None
-    
+
     # Create a *password_hash* and *cipher* with required method.
-    password_hash = hashlib.pbkdf2_hmac(algo, password,
-                                        salt, iterations, dklen)
+    password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
+                                        dklen)
     cipher_obj = _get_cipher(password_hash, nonce, flag)
     cipher_obj.authenticate_additional_data(metadata)
 
     try:
-        _writer(file_path, new_file,
-                cipher_obj, flag,
-                nonce=nonce, mac_tag=mac,
+        _writer(file_path,
+                new_file,
+                cipher_obj,
+                flag,
+                nonce=nonce,
+                mac_tag=mac,
                 mac_func=lambda: cipher_obj.tag,
-                salt=salt, block_size=block_size,
+                salt=salt,
+                block_size=block_size,
                 metadata=metadata)
     except InvalidTag:
         os.remove(new_file)
@@ -138,8 +151,8 @@ def locker(file_path, password, remove=True, method=None, new_file=None,
         os.remove(file_path)
 
 
-def _writer(file_path, new_file, method, flag, salt,
-            nonce, mac_func, mac_tag, block_size, metadata):
+def _writer(file_path, new_file, method, flag, salt, nonce, mac_func, mac_tag,
+            block_size, metadata):
     """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
     *new_file* with the provided method by looping through each block
@@ -156,7 +169,8 @@ def _writer(file_path, new_file, method, flag, salt,
     :param metadata: Associated data to be written to the file
     :param block_size: Reading block size, in bytes.
     :param mac_func: bound method of AES object for calculating MAC-tag.
-    :param mac_tag: bytes object (the MAC-tag for verification after decryption)
+    :param mac_tag: bytes object (the MAC-tag for verification
+                    after decryption)
     :param nonce: nonce used with the key.
     :return: None
     """
