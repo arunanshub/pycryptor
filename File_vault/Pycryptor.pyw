@@ -270,10 +270,8 @@ class MainApplication(tk.Frame):
             text="Cancel",
             command=self.conf.destroy).place(x=206, y=140)
 
-        if sys.platform == "win32":
-            # this is added because tkinter on linux raised
-            # an error when an app-icon was added.
-            self.conf.iconbitmap("pycryptor.ico")
+        if self.parent.iconname() is not None:
+            self.conf.iconbitmap(self.parent.iconname())
 
         self.conf.transient(self.parent)
         self.conf.focus_set()
@@ -314,5 +312,5 @@ if __name__ == "__main__":
         # this is added because tkinter on linux raised
         # an error when an app-icon was added.
         root.iconbitmap("pycryptor.ico")
-
+        root.iconname("pycryptor.ico")
     root.mainloop()
