@@ -186,6 +186,9 @@ class Controller:
         top.title("Please wait...")
         top.resizable(0, 0)
 
+        if self.parent.iconname() is not None:
+            top.iconbitmap(self.parent.iconname())
+
         # Cannot destroy windows manually while program is running
         top.protocol('WM_DELETE_WINDOW', lambda: None)
         self.parent.protocol('WM_DELETE_WINDOW', lambda: None)
