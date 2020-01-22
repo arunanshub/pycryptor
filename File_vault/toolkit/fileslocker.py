@@ -13,7 +13,7 @@ def files_locker(file_list, password, mode, backend, **kwargs):
     :param file_list: iterable having valid file paths
     :param password: bytes object of any length. (recommended length > 8)
     :param mode: 'encrypt' or 'decrypt'
-    :param locker: the locker module to use (for dynamic switching)
+    :param backend: the locker module to use.
     :param kwargs: "all `kwargs` compatible with locker + max nos. of threads.
     :return: dictionary showing which files were processed successfully.
     """
