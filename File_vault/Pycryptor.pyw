@@ -29,13 +29,7 @@ class MainApplication(tk.Frame):
     key_lens = (16, 24, 32)
     backends = [k for k, v in util.backends().items() if v]
 
-    # Tk variables for Entry/Option-menus
-    # _dklen = None
-    # _backend
-    # ext = None
-    # conf = None
-
-    version_no = "2.1.0"
+    version_no = "2.1.1"
 
     # general help, about, and formalities... :)
     aboutmsg = util.aboutmsg
