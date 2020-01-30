@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from tkinter import filedialog, messagebox, ttk, Toplevel, TclError
+from tkinter import filedialog, messagebox, ttk, Toplevel, Frame
 
 from . import utility as util
 from .fileslocker import files_locker
@@ -82,34 +82,40 @@ class Controller:
         cleanup after the task is completed.
         """
         if self._prepare(self.file_items, password, kwargs['method']):
-            with ThreadPoolExecutor(1) as exc:
-                # Initiate the `waitbox` and set a callback by default.
-                _wbox = self._waitbox(kwargs['method'])
-                result = exc.submit(files_locker, file_items, password,
-                                    **kwargs)
+            # Set up the Executor.
+            exc = ThreadPoolExecutor(1)
+            # Initiate the `waitbox` and let a sepatate thread control
+            # the task.
+            _wbox = self._waitbox(kwargs['method'])
+            future = exc.submit(files_locker, file_items, password, **kwargs)
 
-                # add all callbacks to the futures.
-                result.add_done_callback(lambda x: _wbox.destroy())
-                # this callback restores the default behavior of `self.parent`
-                result.add_done_callback(lambda x: self.parent.protocol(
-                    'WM_DELETE_WINDOW', self.parent.destroy))
-                result.add_done_callback(lambda x: self._show_result(
-                    result.result(), kwargs['mode']))
+            # 0. destroy the waitbox widget after the task is completed.
+            future.add_done_callback(lambda x: _wbox.destroy())
 
-                # Start the Waitbox
-                try:
-                    _wbox.focus_set()
-                    _wbox.grab_set()
-                    _wbox.transient(self.parent)
-                    _wbox.mainloop()
-                except TclError:
-                    pass
+            # 1. restore the parent widget's state
+            # 2. Show the result.
+            future.add_done_callback(lambda x: self.parent.protocol(
+                'WM_DELETE_WINDOW', self.parent.destroy))
+            future.add_done_callback(
+                lambda x: self._show_result(x, kwargs['mode']))
+            # 3. Shut the executor down without waiting.
+            # (that was a problem in Executor context manager).
+            future.add_done_callback(lambda x: exc.shutdown(wait=False))
 
-    def _show_result(self, stats, method):
+            # Start the Waitbox only if the future is running (possibly a long
+            # running task?)
+            if future.running():
+                _wbox.focus_set()
+                _wbox.grab_set()
+                _wbox.transient(self.parent)
+                _wbox.wait_window()
+
+    def _show_result(self, future, method):
         """
         Shows the result of the task after its completion as a message box.
         Also the colors of Listbox are updated according to color-code.
         """
+        stats = future.result()
         not_found, success, failure, inv = (
             stats["FNF"],
             stats["SUC"],
@@ -117,10 +123,7 @@ class Controller:
             stats["INV"],
         )
 
-        tk_list_items = self.tk_listbox.getvar(
-            self.tk_listbox.cget("listvariable"))
-
-        for each in tk_list_items:
+        for each in self.file_items:
             index = self.tk_listbox.get(0, "end").index(each)
             if each in success:
                 self.tk_listbox.itemconfig(index, {"bg": "green"})
@@ -178,18 +181,23 @@ class Controller:
         Creates a waitbox while the app is running.
         This prevents the app from hanging. (call it a cool hack or whatever)
         """
+        # Basic tasks to set up the waitbox Toplevel widget.
         top = Toplevel(self.parent)
-        ttk.Label(
-            top,
-            text=util.waitbox_msg.format(method=method),
-        ).pack(anchor='center')
         top.title("Please wait...")
         top.resizable(0, 0)
+        fr = Frame(top)
+        fr.pack()
+
+        # pack the Label with the correct working mode.
+        ttk.Label(
+            fr,
+            text=util.waitbox_msg.format(method=method),
+        ).pack(anchor='center')
 
         if self.parent.iconname() is not None:
             top.iconbitmap(self.parent.iconname())
 
-        # Cannot destroy windows manually while program is running
+        # User cannot destroy windows manually while program is running
         top.protocol('WM_DELETE_WINDOW', lambda: None)
         self.parent.protocol('WM_DELETE_WINDOW', lambda: None)
         return top
