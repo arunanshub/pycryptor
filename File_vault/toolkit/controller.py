@@ -216,4 +216,6 @@ class Controller:
         top.protocol('WM_DELETE_WINDOW', lambda: None)
         self.parent.protocol('WM_DELETE_WINDOW', lambda: None)
         top.transient(self.parent)
+        top.focus_set()
+        top.grab_set()
         return top
