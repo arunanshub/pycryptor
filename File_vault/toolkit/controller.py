@@ -1,4 +1,6 @@
-from concurrent.futures import ThreadPoolExecutor
+import threading
+import queue
+
 from tkinter import filedialog, messagebox, ttk, Toplevel, Frame
 
 from . import utility as util
@@ -10,6 +12,9 @@ class Controller:
     This controls the behavior of Listbox and Encrypt/Decrypt
     button. It also displays the message with respect to the context.
     """
+    _result_queue = queue.Queue(1)
+    wait_time = 250
+
     def __init__(self, file_items, tk_listbox, parent=None):
         self.parent = parent
         self.file_items = file_items
@@ -73,49 +78,60 @@ class Controller:
             method="decrypt",
         )
 
+    def _produce_task(self, file_items, password, _wbox, **kwargs):
+        # put the result, waitbox widget and task-method in a queue.
+        # This is a blocking code.
+        self._result_queue.put_nowait(
+            (files_locker(file_items, password,
+                          **kwargs), _wbox, kwargs['method']))
+
     def _submit_task(self, file_items, password, **kwargs):
         """
         The task is submitted here.
         A thread is started which calls the required function.
 
-        Callbacks are added to the `Future` object to perform the
-        cleanup after the task is completed.
+        Works on producer-consumer model.
         """
         if self._prepare(self.file_items, password, kwargs['method']):
-            # Set up the Executor.
-            exc = ThreadPoolExecutor(1)
-            # Initiate the `waitbox` and let a sepatate thread control
-            # the task.
             _wbox = self._waitbox(kwargs['method'])
-            future = exc.submit(files_locker, file_items, password, **kwargs)
 
-            # 0. destroy the waitbox widget after the task is completed.
-            future.add_done_callback(lambda x: _wbox.destroy())
+            # create a producer thread and run in parallel
+            threading.Thread(target=lambda: self._produce_task(
+                file_items, password, _wbox, **kwargs)).start()
 
-            # 1. restore the parent widget's state
-            # 2. Show the result.
-            future.add_done_callback(lambda x: self.parent.protocol(
-                'WM_DELETE_WINDOW', self.parent.destroy))
-            future.add_done_callback(
-                lambda x: self._show_result(x, kwargs['mode']))
-            # 3. Shut the executor down without waiting.
-            # (that was a problem in Executor context manager).
-            future.add_done_callback(lambda x: exc.shutdown(wait=False))
+            # start the consumer and the waitbox.
+            self._consume_task()
+            _wbox.mainloop()
 
-            # Start the Waitbox only if the future is running (possibly a long
-            # running task?)
-            if future.running():
-                _wbox.focus_set()
-                _wbox.grab_set()
-                _wbox.transient(self.parent)
-                _wbox.wait_window()
+    def _consume_task(self):
+        try:
+            # try to fetch the values
+            result, _wbox, method = self._result_queue.get_nowait()
+        except queue.Empty:
+            # let parent widget call it again after `wait_time`
+            self.parent.after(self.wait_time, self._consumer)
+        else:
+            # cleaanup after task is done
+            self._cleanup(result, _wbox, method)
 
-    def _show_result(self, future, method):
+    def _cleanup(self, result, _wbox, method):
+        """
+        This is called only after the thread has finished it's task.
+        """
+        # The waitbox widget is destroyed,
+        # the parent's behavior is restored, and the result is shown.
+        _wbox.destroy()
+        self.parent.update()
+        self.parent.protocol('WM_DELETE_WINDOW', self.parent.destroy)
+        self._show_result(result, method)
+
+    def _show_result(self, stats, method):
         """
         Shows the result of the task after its completion as a message box.
         Also the colors of Listbox are updated according to color-code.
+
+        This must always be called by the main thread!
         """
-        stats = future.result()
         not_found, success, failure, inv = (
             stats["FNF"],
             stats["SUC"],
@@ -148,8 +164,7 @@ class Controller:
                 failed=len(failure),
                 fnf=len(not_found),
                 ign=len(inv),
-            ),
-        )
+            ))
 
     def _prepare(self, file_items, password, method):
         """
@@ -179,7 +194,7 @@ class Controller:
     def _waitbox(self, method):
         """
         Creates a waitbox while the app is running.
-        This prevents the app from hanging. (call it a cool hack or whatever)
+        This prevents the app from hanging.
         """
         # Basic tasks to set up the waitbox Toplevel widget.
         top = Toplevel(self.parent)
@@ -200,4 +215,5 @@ class Controller:
         # User cannot destroy windows manually while program is running
         top.protocol('WM_DELETE_WINDOW', lambda: None)
         self.parent.protocol('WM_DELETE_WINDOW', lambda: None)
+        top.transient(self.parent)
         return top
