@@ -6,13 +6,16 @@ import webbrowser
 from tkinter import messagebox, ttk
 from tkinter.font import Font
 
-from toolkit import utility as util
+from toolkit.utils import backloader
+from toolkit.utils.constants.colors import AppColor
+from toolkit.utils.constants import messages
+
 from toolkit.controller import Controller
 
-if not any(util.backends().values()):
+if not any(backloader.backends().values()):
     _ = tk.Tk()
     _.withdraw()
-    messagebox.showerror("Pycryptor", util.no_backend_error)
+    messagebox.showerror("Pycryptor", messages.no_backend_error)
     raise SystemExit(1)
 
 
@@ -21,21 +24,21 @@ class MainApplication(tk.Frame):
     The Application class.
     """
     extension = ".0DAY"
-    backend = util.get_backend()
-    backend_module = util.change_backend(backend)
+    backend = backloader.get_backend()
+    backend_module = backloader.change_backend(backend)
     dklen = 32
 
     # options for Option-Menu
     key_lens = (16, 24, 32)
-    backends = [k for k, v in util.backends().items() if v]
+    backends = [k for k, v in backloader.backends().items() if v]
 
     version_no = "2.2.0"
 
     # general help, about, and formalities... :)
-    aboutmsg = util.aboutmsg
-    credits_ = util.credits_
-    help_msg = util.help_msg
-    config_help = util.config_help
+    aboutmsg = messages.aboutmsg
+    credits_ = messages.credits_
+    help_msg = messages.help_msg
+    config_help = messages.config_help
 
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -43,16 +46,16 @@ class MainApplication(tk.Frame):
 
         style = ttk.Style()
         style.configure("BW.TLabel",
-                        foreground=util.color_white,
-                        background=util.color_primary_dark)
+                        foreground=AppColor.color_white.value,
+                        background=AppColor.color_primary_dark.value)
 
-        top = tk.PanedWindow(self.parent, bg=util.color_primary_dark)
+        top = tk.PanedWindow(self.parent, bg=AppColor.color_primary_dark.value)
         custom_font = Font(size=10)
 
         # setup list
         list_label = tk.Label(top,
-                              bg=util.color_primary_dark,
-                              fg=util.color_white,
+                              bg=AppColor.color_primary_dark.value,
+                              fg=AppColor.color_white.value,
                               text="Selected files:")
 
         file_items = []
@@ -63,9 +66,9 @@ class MainApplication(tk.Frame):
                 top,
                 borderwidth=0,
                 listvariable=tk_file_items,
-                highlightbackground=util.color_accent_dark,
-                bg=util.color_accent_dark,
-                fg=util.color_white,
+                highlightbackground=AppColor.color_accent_dark.value,
+                bg=AppColor.color_accent_dark.value,
+                fg=AppColor.color_white.value,
             ),
             parent=self.parent,
         )
@@ -75,9 +78,9 @@ class MainApplication(tk.Frame):
         password_input = tk.Entry(
             top,
             borderwidth=0,
-            highlightbackground=util.color_accent_dark,
-            bg=util.color_accent_dark,
-            fg=util.color_white,
+            highlightbackground=AppColor.color_accent_dark.value,
+            bg=AppColor.color_accent_dark.value,
+            fg=AppColor.color_white.value,
             font=custom_font,
             show="\u2022",
         )
@@ -88,13 +91,17 @@ class MainApplication(tk.Frame):
         filemenu1.add_command(label="Add", command=ctrl.add)
         filemenu1.add_command(
             label="Encrypt",
-            command=lambda: ctrl.encrypt(password_input.get(), self.extension,
-                                         self.dklen),
+            command=lambda: ctrl.encrypt(password_input.get().encode(),
+                                         self.extension,
+                                         self.dklen,
+                                         backend=self.backend_module),
         )
         filemenu1.add_command(
             label="Decrypt",
-            command=lambda: ctrl.decrypt(password_input.get(), self.extension,
-                                         self.dklen),
+            command=lambda: ctrl.decrypt(password_input.get().encode(),
+                                         self.extension,
+                                         self.dklen,
+                                         backend=self.backend_module),
         )
         filemenu1.add_separator()
         filemenu1.add_command(label="Configure...",
@@ -146,8 +153,8 @@ class MainApplication(tk.Frame):
                 self.dklen,
                 backend=self.backend_module,
             ),
-            bg=util.color_accent_dark,
-            fg=util.color_white,
+            bg=AppColor.color_accent_dark.value,
+            fg=AppColor.color_white.value,
             borderwidth=0,
             font=custom_font,
         )
@@ -161,8 +168,8 @@ class MainApplication(tk.Frame):
                 self.dklen,
                 backend=self.backend_module,
             ),
-            bg=util.color_accent_dark,
-            fg=util.color_white,
+            bg=AppColor.color_accent_dark.value,
+            fg=AppColor.color_white.value,
             borderwidth=0,
             font=custom_font,
         )
@@ -172,8 +179,8 @@ class MainApplication(tk.Frame):
             top,
             text="Add",
             command=ctrl.add,
-            bg=util.color_primary,
-            fg=util.color_white,
+            bg=AppColor.color_primary.value,
+            fg=AppColor.color_white.value,
             borderwidth=0,
         )
 
@@ -181,8 +188,8 @@ class MainApplication(tk.Frame):
             top,
             text="Remove",
             command=ctrl.remove,
-            bg=util.color_danger,
-            fg=util.color_white,
+            bg=AppColor.color_danger.value,
+            fg=AppColor.color_white.value,
             borderwidth=0,
         )
 
@@ -287,7 +294,7 @@ class MainApplication(tk.Frame):
         self._set_title(f"Pycryptor - using backend {self.backend}")
 
         # change the backend module to the user's option.
-        self.backend_module = util.change_backend(self.backend)
+        self.backend_module = backloader.change_backend(self.backend)
         self.conf.destroy()
 
     def _set_title(self, title=None):
