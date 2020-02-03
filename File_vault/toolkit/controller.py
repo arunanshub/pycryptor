@@ -109,7 +109,7 @@ class Controller:
             result, _wbox, method = self._result_queue.get_nowait()
         except queue.Empty:
             # let parent widget call it again after `wait_time`
-            self.parent.after(self.wait_time, self._consumer)
+            self.parent.after(self.wait_time, self._consume_task)
         else:
             # cleaanup after task is done
             self._cleanup(result, _wbox, method)
