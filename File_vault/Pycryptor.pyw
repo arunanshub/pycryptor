@@ -29,7 +29,7 @@ class MainApplication(tk.Frame):
     key_lens = (16, 24, 32)
     backends = [k for k, v in util.backends().items() if v]
 
-    version_no = "2.1.1"
+    version_no = "2.2.0"
 
     # general help, about, and formalities... :)
     aboutmsg = util.aboutmsg
