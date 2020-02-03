@@ -1,9 +1,10 @@
+# from concurrent.futures import ThreadPoolExecutor
 import threading
 import queue
 
 from tkinter import filedialog, messagebox, ttk, Toplevel, Frame
 
-from . import utility as util
+from .utils.constants import messages
 from .fileslocker import files_locker
 
 
@@ -111,7 +112,7 @@ class Controller:
             # let parent widget call it again after `wait_time`
             self.parent.after(self.wait_time, self._consume_task)
         else:
-            # cleaanup after task is done
+            # cleanup after task is done
             self._cleanup(result, _wbox, method)
 
     def _cleanup(self, result, _wbox, method):
@@ -206,7 +207,7 @@ class Controller:
         # pack the Label with the correct working mode.
         ttk.Label(
             fr,
-            text=util.waitbox_msg.format(method=method),
+            text=messages.waitbox_msg.format(method=method),
         ).pack(anchor='center')
 
         if self.parent.iconname() is not None:
