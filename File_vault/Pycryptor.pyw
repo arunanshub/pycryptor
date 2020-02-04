@@ -7,8 +7,9 @@ from tkinter import messagebox, ttk
 from tkinter.font import Font
 
 from toolkit.utils import backloader
-from toolkit.utils.constants.colors import AppColor
-from toolkit.utils.constants import messages
+from toolkit.utils import AppColors
+from toolkit.utils import AppUrls
+from toolkit.utils import messages
 
 from toolkit.controller import Controller
 
@@ -32,7 +33,7 @@ class MainApplication(tk.Frame):
     key_lens = (16, 24, 32)
     backends = [k for k, v in backloader.backends().items() if v]
 
-    version_no = "2.2.0"
+    version_no = "2.2.1"
 
     # general help, about, and formalities... :)
     aboutmsg = messages.aboutmsg
@@ -46,29 +47,27 @@ class MainApplication(tk.Frame):
 
         style = ttk.Style()
         style.configure("BW.TLabel",
-                        foreground=AppColor.color_white.value,
-                        background=AppColor.color_primary_dark.value)
+                        foreground=AppColors.color_white.value,
+                        background=AppColors.color_primary_dark.value)
 
-        top = tk.PanedWindow(self.parent, bg=AppColor.color_primary_dark.value)
+        top = tk.PanedWindow(self.parent,
+                             bg=AppColors.color_primary_dark.value)
         custom_font = Font(size=10)
 
         # setup list
         list_label = tk.Label(top,
-                              bg=AppColor.color_primary_dark.value,
-                              fg=AppColor.color_white.value,
+                              bg=AppColors.color_primary_dark.value,
+                              fg=AppColors.color_white.value,
                               text="Selected files:")
 
-        file_items = []
-        tk_file_items = tk.Variable(top, value=file_items, name="file_items")
         ctrl = Controller(
-            file_items,
+            list(),
             tk.Listbox(
                 top,
                 borderwidth=0,
-                listvariable=tk_file_items,
-                highlightbackground=AppColor.color_accent_dark.value,
-                bg=AppColor.color_accent_dark.value,
-                fg=AppColor.color_white.value,
+                highlightbackground=AppColors.color_accent_dark.value,
+                bg=AppColors.color_accent_dark.value,
+                fg=AppColors.color_white.value,
             ),
             parent=self.parent,
         )
@@ -78,9 +77,9 @@ class MainApplication(tk.Frame):
         password_input = tk.Entry(
             top,
             borderwidth=0,
-            highlightbackground=AppColor.color_accent_dark.value,
-            bg=AppColor.color_accent_dark.value,
-            fg=AppColor.color_white.value,
+            highlightbackground=AppColors.color_accent_dark.value,
+            bg=AppColors.color_accent_dark.value,
+            fg=AppColors.color_white.value,
             font=custom_font,
             show="\u2022",
         )
@@ -131,15 +130,15 @@ class MainApplication(tk.Frame):
         filemenu2.add_separator()
         filemenu2.add_command(
             label="Visit This app on GitHub",
-            command=lambda: webbrowser.open("https://bit.ly/2QQGRTr"),
+            command=lambda: webbrowser.open(AppUrls.app_url.value),
         )
         filemenu2.add_command(
             label="Visit Me on GitHub",
-            command=lambda: webbrowser.open("https://bit.ly/2NWViSH"),
+            command=lambda: webbrowser.open(AppUrls.user_url.value),
         )
         filemenu2.add_command(
             label="About AES-GCM mode",
-            command=lambda: webbrowser.open("https://bit.ly/2zP0BOf"),
+            command=lambda: webbrowser.open(AppUrls.aes_gcm_wiki_url.value),
         )
         menubar.add_cascade(label="Help", menu=filemenu2)
 
@@ -153,8 +152,8 @@ class MainApplication(tk.Frame):
                 self.dklen,
                 backend=self.backend_module,
             ),
-            bg=AppColor.color_accent_dark.value,
-            fg=AppColor.color_white.value,
+            bg=AppColors.color_accent_dark.value,
+            fg=AppColors.color_white.value,
             borderwidth=0,
             font=custom_font,
         )
@@ -168,8 +167,8 @@ class MainApplication(tk.Frame):
                 self.dklen,
                 backend=self.backend_module,
             ),
-            bg=AppColor.color_accent_dark.value,
-            fg=AppColor.color_white.value,
+            bg=AppColors.color_accent_dark.value,
+            fg=AppColors.color_white.value,
             borderwidth=0,
             font=custom_font,
         )
@@ -179,8 +178,8 @@ class MainApplication(tk.Frame):
             top,
             text="Add",
             command=ctrl.add,
-            bg=AppColor.color_primary.value,
-            fg=AppColor.color_white.value,
+            bg=AppColors.color_primary.value,
+            fg=AppColors.color_white.value,
             borderwidth=0,
         )
 
@@ -188,8 +187,8 @@ class MainApplication(tk.Frame):
             top,
             text="Remove",
             command=ctrl.remove,
-            bg=AppColor.color_danger.value,
-            fg=AppColor.color_white.value,
+            bg=AppColors.color_danger.value,
+            fg=AppColors.color_white.value,
             borderwidth=0,
         )
 
