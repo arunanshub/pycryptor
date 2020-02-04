@@ -3,7 +3,7 @@ import queue
 
 from tkinter import filedialog, messagebox, ttk, Toplevel, Frame
 
-from .utils.constants import messages
+from .utils import messages
 from .fileslocker import files_locker
 
 
@@ -46,7 +46,7 @@ class Controller:
         try:
             index = self.tk_listbox.curselection()[0]
             del self.file_items[index]
-            self.tk_listbox.delete(self.tk_listbox.curselection()[0])
+            self.tk_listbox.delete(index)
         except IndexError:
             messagebox.showerror("Error", "No files selected.")
 
@@ -139,7 +139,7 @@ class Controller:
             stats["INV"],
         )
 
-        for each in self.file_items:
+        for each in iter(self.file_items):
             index = self.tk_listbox.get(0, "end").index(each)
             if each in success:
                 self.tk_listbox.itemconfig(index, {"bg": "green"})
