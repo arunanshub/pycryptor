@@ -1,7 +1,7 @@
 import enum
 
 
-class AppColor(enum.Enum):
+class AppColors(enum.Enum):
     # colors for elements
     color_primary = "#7d5fff"
     color_primary_dark = "#3d3d3d"
