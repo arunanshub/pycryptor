@@ -42,6 +42,5 @@ and maybe...
 to Python developers."
 [3]: <toolkit/backends/README.md#the-core>
 "The spine and bone of the app... :)"
-[4]: <toolkit/utility.py>
 [5]: <toolkit/backends/crylocker.py>
 [6]: <toolkit/backends/pylocker.py>
