@@ -8,7 +8,7 @@ def walker(path, exts=None, *, absolute=False):
     object) which specifies the absolute path of the files
 
     `exts` is an iterable with all extensions to be included
-    in `walker`'s output. If `exts` is specified, then the 
+    in `walker`'s output. If `exts` is specified, then the
     files which ends with it are only yielded.
 
     If `absolute` argument is set to `True`, then the absolute
