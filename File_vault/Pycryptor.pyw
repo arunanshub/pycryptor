@@ -33,7 +33,7 @@ class MainApplication(tk.Frame):
     key_lens = (16, 24, 32)
     backends = [k for k, v in backloader.backends().items() if v]
 
-    version_no = "2.2.1"
+    version_no = "2.3.0"
 
     # general help, about, and formalities... :)
     aboutmsg = messages.aboutmsg
