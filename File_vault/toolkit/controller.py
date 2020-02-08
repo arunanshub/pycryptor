@@ -12,8 +12,10 @@ class Controller:
     This controls the behavior of Listbox and Encrypt/Decrypt
     button. It also displays the message with respect to the context.
     """
-    _result_queue = queue.Queue(1)
+    _result_queue = queue.Queue()
     wait_time = 250
+    _sentinel = object()
+    _stat_counter = dict()
 
     def __init__(self, file_items, tk_listbox, parent=None):
         self.parent = parent
@@ -50,6 +52,10 @@ class Controller:
         except IndexError:
             messagebox.showerror("Error", "No files selected.")
 
+    def remove_all(self):
+        self.tk_listbox.delete(0, 'end')
+        self.file_items.clear()
+
     def encrypt(self, password, ext, dklen, backend):
         """
         Starts encryption process.
@@ -57,7 +63,6 @@ class Controller:
         self._submit_task(
             self.file_items,
             password,
-            mode="encrypt",
             ext=ext,
             dklen=dklen,
             backend=backend,
@@ -71,19 +76,25 @@ class Controller:
         self._submit_task(
             self.file_items,
             password,
-            mode="decrypt",
             ext=ext,
             dklen=dklen,
             backend=backend,
             method="decrypt",
         )
 
-    def _produce_task(self, file_items, password, _wbox, **kwargs):
-        # put the result, waitbox widget and task-method in a queue.
-        # This is a blocking code.
-        self._result_queue.put_nowait(
-            (files_locker(file_items, password,
-                          **kwargs), _wbox, kwargs['method']))
+    def _produce_task(self, file_items, password, _wbox, lock, **kwargs):
+        """
+        put the result, waitbox widget and task-method in a queue.
+        This is a blocking code.
+        Runs in a thread.
+        """
+        for file_res in files_locker(*file_items,
+                                     password=password,
+                                     lock=lock,
+                                     **kwargs):
+            self._result_queue.put_nowait((*file_res, _wbox, kwargs['method']))
+        self._result_queue.put_nowait((self._sentinel, ) * 2 +
+                                      (_wbox, kwargs['method']))
 
     def _submit_task(self, file_items, password, **kwargs):
         """
@@ -94,77 +105,78 @@ class Controller:
         """
         if self._prepare(self.file_items, password, kwargs['method']):
             _wbox = self._waitbox(kwargs['method'])
-
+            lock = True if kwargs['method'] == 'encrypt' else False
             # create a producer thread and run in parallel
             threading.Thread(target=lambda: self._produce_task(
-                file_items, password, _wbox, **kwargs)).start()
-
+                file_items, password, _wbox, lock=lock, **kwargs)).start()
             # start the consumer and the waitbox.
             self._consume_task()
             _wbox.mainloop()
 
     def _consume_task(self):
+        _call_later = lambda: self.parent.after(self.wait_time, self.
+                                                _consume_task)
         try:
-            # try to fetch the values
-            result, _wbox, method = self._result_queue.get_nowait()
+            file, result, _wbox, method = self._result_queue.get_nowait()
         except queue.Empty:
             # let parent widget call it again after `wait_time`
-            self.parent.after(self.wait_time, self._consume_task)
+            _call_later()
         else:
-            # cleanup after task is done
-            self._cleanup(result, _wbox, method)
+            if file is self._sentinel:
+                self._cleanup(self._stat_counter, _wbox, method)
+                self._stat_counter.clear()
+                return
+            else:
+                self._gradual_update(file, self._stat_counter, result)
+                _call_later()
 
-    def _cleanup(self, result, _wbox, method):
+    def _gradual_update(self, file, stat_dict, result):
+        """
+        Gradually increase the counters for their respective modes
+        and change the `ListBox`'s color.
+        """
+        self._change_listbox_color(file, result)
+        stat_dict.setdefault(result, 0)
+        stat_dict[result] += 1
+        self.parent.update()
+
+    def _cleanup(self, stat_dict, _wbox, method):
         """
         This is called only after the thread has finished it's task.
         """
         # The waitbox widget is destroyed,
-        # the parent's behavior is restored, and the result is shown.
+        # the parent's behavior is restored,
+        # and the result is shown.
         _wbox.destroy()
         self.parent.update()
         self.parent.protocol('WM_DELETE_WINDOW', self.parent.destroy)
-        self._show_result(result, method)
+        self._show_msgbox_result(stat_dict, method)
 
-    def _show_result(self, stats, method):
+    def _show_msgbox_result(self, stat_dict, method):
         """
-        Shows the result of the task after its completion as a message box.
-        Also the colors of Listbox are updated according to color-code.
-
-        This must always be called by the main thread!
+        Display the stats to the user after the task is done.
+        Called from the MainThread.
         """
-        not_found, success, failure, inv = (
-            stats["FNF"],
-            stats["SUC"],
-            stats["FAIL"],
-            stats["INV"],
-        )
-
-        for each in iter(self.file_items):
-            index = self.tk_listbox.get(0, "end").index(each)
-            if each in success:
-                self.tk_listbox.itemconfig(index, {"bg": "green"})
-            elif each in failure:
-                self.tk_listbox.itemconfig(index, {"bg": "red"})
-            elif each in inv:
-                self.tk_listbox.itemconfig(index, {
-                    "bg": "purple",
-                    "fg": "white"
-                })
-            elif each in not_found:
-                self.tk_listbox.itemconfig(index, {
-                    "bg": "yellow",
-                    "fg": "black"
-                })
-
         messagebox.showinfo(
             f"{method.title()}ed",
             self.stat_template.format(
                 method=method,
-                success=len(success),
-                failed=len(failure),
-                fnf=len(not_found),
-                ign=len(inv),
+                success=stat_dict.get('SUC', 0),
+                failed=stat_dict.get('FAIL', 0),
+                fnf=stat_dict.get('FNF', 0),
+                ign=stat_dict.get('INV', 0),
             ))
+
+    def _change_listbox_color(self, file, result):
+        index = self.tk_listbox.get(0, "end").index(file)
+        if result == 'SUC':
+            self.tk_listbox.itemconfig(index, {"bg": "green"})
+        elif result == 'FAIL':
+            self.tk_listbox.itemconfig(index, {"bg": "red"})
+        elif result == 'INV':
+            self.tk_listbox.itemconfig(index, {"bg": "purple", "fg": "white"})
+        elif result == 'FNF':
+            self.tk_listbox.itemconfig(index, {"bg": "yellow", "fg": "black"})
 
     def _prepare(self, file_items, password, method):
         """
