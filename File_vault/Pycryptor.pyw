@@ -192,8 +192,18 @@ class MainApplication(tk.Frame):
             borderwidth=0,
         )
 
+        removeall_btn = tk.Button(
+            top,
+            text="Remove All",
+            command=ctrl.remove_all,
+            bg=AppColors.color_danger.value,
+            fg=AppColors.color_white.value,
+            borderwidth=0,
+        )
+
         # element placement
-        add_btn.place(height=30, width=60, x=315, y=305)  # file add btn
+        add_btn.place(height=30, width=70, x=210, y=305)
+        removeall_btn.place(height=30, width=90, x=290, y=305)  # file add btn
         remove_btn.place(height=30, width=70, x=390, y=305)  # file remove btn
 
         # start encryption btn
