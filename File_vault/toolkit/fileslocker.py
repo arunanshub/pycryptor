@@ -1,62 +1,129 @@
 import os
-from collections import deque
+import queue
 from concurrent import futures
-from queue import PriorityQueue
+from functools import partial
+
+from .walker import walker
 
 
-def files_locker(file_list, password, mode, backend, **kwargs):
+def files_locker(*files,
+                 password,
+                 ext,
+                 backend=None,
+                 lock=True,
+                 max_workers=None,
+                 **kwargs):
     """
     This encrypts/decypts multiple files simultaneously by initiating
     a Process Pool. The `max_number` of process is `os.cpu_count() // 2`
     by default.
 
-    :param file_list: iterable having valid file paths
+    This will support directory walkers.
+
+    :param files: file paths to be used.
     :param password: bytes object of any length. (recommended length > 8)
-    :param mode: 'encrypt' or 'decrypt'
-    :param backend: the locker module to use.
-    :param kwargs: "all `kwargs` compatible with locker + max nos. of threads.
+    :param ext: Extension that will be used to check the file if it can be
+                decrypted or not.
+    :param kwargs: "all `kwargs` compatible with locker module.
     :return: dictionary showing which files were processed successfully.
+    # TODO
     """
     if not isinstance(password, bytes):
         raise TypeError("password must be a bytes object.")
-    ext = kwargs.get('ext', '.0DAY')
 
-    cpu_nos = kwargs.get('max_nos') or (os.cpu_count() // 2)
-    file_queue = PriorityQueue()
-    future_states = deque()
-    stats = {'FNF': deque(), 'FAIL': deque(), 'SUC': [], 'INV': []}
-    files = iter(file_list)
+    if backend is None:
+        from .backends import crylocker as backend
 
-    with futures.ProcessPoolExecutor(max_workers=cpu_nos) as exc:
-        for file in files:
+    # some useful variables
+    _cpu_count = max_workers or os.cpu_count()
+    _locker = partial(backend.locker, password=password, ext=ext, **kwargs)
+
+    with futures.ProcessPoolExecutor(_cpu_count) as exc:
+        file_q = queue.PriorityQueue(2**_cpu_count)
+        all_files = _check_ext(_to_paths(files), ext=ext, lock=lock)
+
+        exhausted = False
+        while not exhausted:
+            fut = set()
+
+            for i in range(file_q.maxsize):
+                # put all the files in a limited amount
+                each, size_or_stat = next(all_files, (None, None))
+
+                if each is None:
+                    exhausted = True
+                    break
+
+                elif size_or_stat == 'FNF' or size_or_stat == 'INV':
+                    # yield invalid files.
+                    yield (each, size_or_stat)
+
+                else:
+                    file_q.put_nowait((each, size_or_stat))
+
             try:
-                if mode == 'encrypt':
-                    if file.endswith(ext):
-                        stats['INV'].append(file)
-                    else:
-                        file_queue.put_nowait((os.path.getsize(file), file))
+                # get all the files and add to fut set
+                while True:
+                    each, _ = file_q.get_nowait()
+                    fut.add((exc.submit(_locker, each), each))
+            except queue.Empty:
+                pass
 
-                if mode == 'decrypt':
-                    if not file.endswith(ext):
-                        stats['INV'].append(file)
-                    else:
-                        file_queue.put_nowait((os.path.getsize(file), file))
+            yield from _categorize_by_error(fut, backend)
 
-            except FileNotFoundError:
-                stats['FNF'].append(file)
 
-        while not file_queue.empty():
-            _, file = file_queue.get_nowait()
-            future = exc.submit(backend.locker, file, password, **kwargs)
-            future_states.append((future, file))
+def _categorize_by_error(f, backend):
+    """
+    Yield the filepaths with their category (errors or success).
+    """
+    for future, path in f:
+        error = future.exception()
+        if isinstance(error, (RuntimeError, backend.DecryptionError)):
+            yield (path, 'FAIL')
+        elif not error:
+            yield (path, 'SUC')
 
-        for (future, file) in future_states:
-            error = future.exception()
-            if isinstance(error, backend.DecryptionError):
-                stats['FAIL'].append(file)
-            elif isinstance(error, RuntimeError):
-                stats['FAIL'].append(file)
-            elif not error:
-                stats['SUC'].append(file)
 
-    return stats
+def _to_paths(files):
+    """
+    Yields paths by walking into directories.
+    """
+    isdir = os.path.isdir
+    isfile = os.path.isfile
+    exists = os.path.exists
+    for each in set(files):
+        if exists(each):
+            if isdir(each):
+                yield from walker(each, absolute=True)
+            elif isfile(each):
+                yield each
+        else:
+            yield (each, 'FNF')
+
+
+def _check_ext(paths, ext=None, lock=False):
+    """
+    Yield workable (file, size) pair;
+    # TODO
+    """
+    if ext:
+        # `ext` is the encrypted file's extension.
+        if not lock:
+            _check = lambda each, ext=ext: each.endswith(ext)
+        else:
+            _check = lambda each, ext=ext: not each.endswith(ext)
+        getsize = os.path.getsize
+        # iterate over the file-paths
+        for each in paths:
+            if len(each) != 2:
+                if _check(each):
+                    yield (each, getsize(each))
+                else:
+                    # files found were invalid.
+                    yield (each, 'INV')
+            else:
+                # these files were not found by `_to_paths`
+                yield each
+    # just simply return all the file paths
+    else:
+        yield from paths
