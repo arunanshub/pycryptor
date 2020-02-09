@@ -6,10 +6,7 @@ import webbrowser
 from tkinter import messagebox, ttk
 from tkinter.font import Font
 
-from toolkit.utils import backloader
-from toolkit.utils import AppColors
-from toolkit.utils import AppUrls
-from toolkit.utils import messages
+from toolkit.utils import backloader, AppColors, AppUrls, messages
 
 from toolkit.controller import Controller
 
@@ -60,15 +57,30 @@ class MainApplication(tk.Frame):
                               fg=AppColors.color_white.value,
                               text="Selected files:")
 
+        # create the listbox with scrollbars
+        listbox = tk.Listbox(
+            top,
+            borderwidth=0,
+            highlightbackground=AppColors.color_accent_dark.value,
+            bg=AppColors.color_accent_dark.value,
+            fg=AppColors.color_white.value,
+        )
+        # x and y scrollbars with correct orientation
+        xscrollbar = ttk.Scrollbar(listbox, orient='horizontal')
+        yscrollbar = ttk.Scrollbar(listbox, orient='vertical')
+        # pack them on the listbox
+        xscrollbar.pack(side='bottom', fill='x')
+        yscrollbar.pack(side='right', fill='y')
+        # configure the listbox
+        listbox.configure(xscrollcommand=xscrollbar.set,
+                          yscrollcommand=yscrollbar.set)
+        # set the scrollbar commands
+        xscrollbar.config(command=listbox.xview)
+        yscrollbar.config(command=listbox.yview)
+        # pass the listbox to `Controller`
         ctrl = Controller(
             list(),
-            tk.Listbox(
-                top,
-                borderwidth=0,
-                highlightbackground=AppColors.color_accent_dark.value,
-                bg=AppColors.color_accent_dark.value,
-                fg=AppColors.color_white.value,
-            ),
+            listbox,
             parent=self.parent,
         )
 
