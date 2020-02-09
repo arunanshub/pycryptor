@@ -34,12 +34,13 @@ class Controller:
         """
         Adds file to list.
         """
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilenames()
         if not file_path:
             return
-        elif file_path not in self.file_items:
-            self.tk_listbox.insert(len(self.file_items) + 1, file_path)
-            self.file_items.append(file_path)
+        for each in file_path:
+            if each not in self.file_items:
+                self.tk_listbox.insert('end', each)
+                self.file_items.append(each)
 
     def remove(self):
         """
