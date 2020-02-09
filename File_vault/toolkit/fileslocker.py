@@ -39,7 +39,7 @@ def files_locker(*files,
     _locker = partial(backend.locker, password=password, ext=ext, **kwargs)
 
     with futures.ProcessPoolExecutor(_cpu_count) as exc:
-        file_q = queue.PriorityQueue(2**_cpu_count)
+        file_q = queue.PriorityQueue(_cpu_count**2)
         all_files = _check_ext(_to_paths(files), ext=ext, lock=lock)
 
         exhausted = False
