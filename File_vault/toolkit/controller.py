@@ -4,7 +4,7 @@ import queue
 from tkinter import filedialog, messagebox, ttk, Toplevel, Frame
 
 from .utils import messages
-from .fileslocker import files_locker
+from . import fileslocker as flocker
 
 
 class Controller:
@@ -89,10 +89,10 @@ class Controller:
         This is a blocking code.
         Runs in a thread.
         """
-        for file_res in files_locker(*file_items,
-                                     password=password,
-                                     lock=lock,
-                                     **kwargs):
+        for file_res in flocker.files_locker(*file_items,
+                                             password=password,
+                                             lock=lock,
+                                             **kwargs):
             self._result_queue.put_nowait((*file_res, _wbox, kwargs['method']))
         self._result_queue.put_nowait((self._sentinel, ) * 2 +
                                       (_wbox, kwargs['method']))
@@ -162,21 +162,21 @@ class Controller:
             f"{method.title()}ed",
             self.stat_template.format(
                 method=method,
-                success=stat_dict.get('SUC', 0),
-                failed=stat_dict.get('FAIL', 0),
-                fnf=stat_dict.get('FNF', 0),
-                ign=stat_dict.get('INV', 0),
+                success=stat_dict.get(flocker.SUCCESS, 0),
+                failed=stat_dict.get(flocker.FAILURE, 0),
+                fnf=stat_dict.get(flocker.FILE_NOT_FOUND, 0),
+                ign=stat_dict.get(flocker.INVALID, 0),
             ))
 
     def _change_listbox_color(self, file, result):
         index = self.tk_listbox.get(0, "end").index(file)
-        if result == 'SUC':
+        if result == flocker.SUCCESS:
             self.tk_listbox.itemconfig(index, {"bg": "green"})
-        elif result == 'FAIL':
+        elif result == flocker.FAILURE:
             self.tk_listbox.itemconfig(index, {"bg": "red"})
-        elif result == 'INV':
+        elif result == flocker.INVALID:
             self.tk_listbox.itemconfig(index, {"bg": "purple", "fg": "white"})
-        elif result == 'FNF':
+        elif result == flocker.FILE_NOT_FOUND:
             self.tk_listbox.itemconfig(index, {"bg": "yellow", "fg": "black"})
 
     def _prepare(self, file_items, password, method):
