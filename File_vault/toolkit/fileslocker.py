@@ -5,6 +5,11 @@ from functools import partial
 
 from .walker import walker
 
+SUCCESS = 'SUC'
+FAILURE = 'FAIL'
+INVALID = 'INV'
+FILE_NOT_FOUND = 'FNF'
+
 
 def files_locker(*files,
                  password,
@@ -14,19 +19,47 @@ def files_locker(*files,
                  max_workers=None,
                  **kwargs):
     """
-    This encrypts/decypts multiple files simultaneously by initiating
-    a Process Pool. The `max_number` of process is `os.cpu_count() // 2`
-    by default.
+    This function encrypts or decrypts multiple files or directories
+    simultaneously, thanks to `concurrent.futures.ProcessPoolExecutor`.
 
-    This will support directory walkers.
+    For directories, a directory walker is used. `glob` module is not
+    used intentionally, because it would have ignored the unusable
+    files, and this function wouldn't have been able to report the unusable
+    files.
 
-    :param files: file paths to be used.
+    The maximum number of process spawned depends on the number of
+    available cores on the system by default. It defaults to `cpu_count / 2`.
+    Internally, PriorityQueue is used for selection of smallest file first,
+    which is quick to encrypt or decrypt.
+
+    :param files: any file or dir path.
+
     :param password: bytes object of any length. (recommended length > 8)
-    :param ext: Extension that will be used to check the file if it can be
-                decrypted or not.
-    :param kwargs: "all `kwargs` compatible with locker module.
-    :return: dictionary showing which files were processed successfully.
-    # TODO
+
+    :param ext: an extension that will be compared with the filenames
+                to check if they can be used according to the mode
+                (encrypt/decrypt).
+
+    :param backend: A backend module to use.
+                    Defaults to `crylocker`, which supports `cryptography`
+                    module.
+                    `pylocker` module uses `Cryptodome` or `Cryptodomex`.
+                    Refer to backend modules for more information.
+
+    :param kwargs: All the `kwargs` that are supported by `locker` module.
+
+    :return:
+        Iterable which yields `(filename, result)` tuple.
+        The `result` can be among the following:
+
+            `SUC`  : File was processed successfully.
+            `FAIL` : File couldn't be processed correctly.
+                    (most probably a failure in decryption caused by incorrect
+                    password or invalid metadata. Refer to `locker` modules.)
+            `INV`  : File was invalid because it cannot be used because it had
+                    an unacceptable extension.
+            `FNF`  : The path was not found on the system.
+
     """
     if not isinstance(password, bytes):
         raise TypeError("password must be a bytes object.")
@@ -50,14 +83,13 @@ def files_locker(*files,
                 # put all the files in a limited amount
                 each, size_or_stat = next(all_files, (None, None))
 
+                # break out of the loop.
                 if each is None:
                     exhausted = True
                     break
-
-                elif size_or_stat == 'FNF' or size_or_stat == 'INV':
+                elif size_or_stat == FILE_NOT_FOUND or size_or_stat == INVALID:
                     # yield invalid files.
                     yield (each, size_or_stat)
-
                 else:
                     file_q.put_nowait((each, size_or_stat))
 
@@ -79,9 +111,9 @@ def _categorize_by_error(f, backend):
     for future, path in f:
         error = future.exception()
         if isinstance(error, (RuntimeError, backend.DecryptionError)):
-            yield (path, 'FAIL')
+            yield (path, FAILURE)
         elif not error:
-            yield (path, 'SUC')
+            yield (path, SUCCESS)
 
 
 def _to_paths(files):
@@ -98,7 +130,7 @@ def _to_paths(files):
             elif isfile(each):
                 yield each
         else:
-            yield (each, 'FNF')
+            yield (each, FILE_NOT_FOUND)
 
 
 def _check_ext(paths, ext=None, lock=False):
@@ -120,7 +152,7 @@ def _check_ext(paths, ext=None, lock=False):
                     yield (each, getsize(each))
                 else:
                     # files found were invalid.
-                    yield (each, 'INV')
+                    yield (each, INVALID)
             else:
                 # these files were not found by `_to_paths`
                 yield each
