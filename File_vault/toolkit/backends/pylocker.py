@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Locker v0.4.3 (follows new protocol)
+# Locker v0.4.4 (follows new protocol)
 # Implemented as function
 #
 # =============================================================================
@@ -28,7 +28,6 @@
 
 import hashlib
 import os
-import stat
 from struct import unpack
 from functools import partial
 
@@ -108,12 +107,11 @@ def locker(file_path,
 
         # Retrieve the *nonce* and *salt*.
         with open(file_path, 'rb') as file:
-            check_metadata = file.read(len(metadata))
-            if not check_metadata == metadata:
+            if not file.read(len(metadata)) == metadata:
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
 
-            mac, nonce, salt = unpack('16s12s32s',
+            mac, nonce, salt = unpack(f'16s{nonce_len}s{salt_len}s',
                                       file.read(16 + nonce_len + salt_len))
 
     # The file is being encrypted.
@@ -179,7 +177,6 @@ def _writer(file_path, new_file, method, flag, salt, nonce, mac_func,
     nonce_len = len(nonce)
     salt_len = len(salt)
 
-    os.chmod(file_path, stat.S_IRWXU)
     with open(file_path, 'rb') as infile:
         with open(new_file, 'wb+') as outfile:
             outfile_write = outfile.write
