@@ -85,15 +85,20 @@ class Controller:
 
     def _produce_task(self, file_items, password, _wbox, lock, **kwargs):
         """
-        put the result, waitbox widget and task-method in a queue.
-        This is a blocking code.
-        Runs in a thread.
+        Puts the result tuple, waitbox widget and task-method in a queue.
+        This is a blocking code and runs in a thread.
         """
         for file_res in flocker.files_locker(*file_items,
                                              password=password,
                                              lock=lock,
                                              **kwargs):
-            self._result_queue.put_nowait((*file_res, _wbox, kwargs['method']))
+            # put the (filename, result, waitbox-variable, method) in the
+            # result queue.
+            self._result_queue.put_nowait((
+                *file_res,
+                _wbox,
+                kwargs['method'],
+            ))
         self._result_queue.put_nowait((self._sentinel, ) * 2 +
                                       (_wbox, kwargs['method']))
 
@@ -107,29 +112,37 @@ class Controller:
         if self._prepare(self.file_items, password, kwargs['method']):
             _wbox = self._waitbox(kwargs['method'])
             lock = True if kwargs['method'] == 'encrypt' else False
+
             # create a producer thread and run in parallel
             threading.Thread(target=lambda: self._produce_task(
                 file_items, password, _wbox, lock=lock, **kwargs)).start()
+
             # start the consumer and the waitbox.
             self._consume_task()
             _wbox.mainloop()
 
     def _consume_task(self):
+        """The consumer function.
+        This function is called periodically to check for results, which
+        were put into the `_result_queue` by the producer thread.
+
+        A sentinel object is used for shutting down the operation and
+        showing the results.
+        """
         _call_later = lambda: self.parent.after(self.wait_time, self.
                                                 _consume_task)
         try:
-            file, result, _wbox, method = self._result_queue.get_nowait()
+            while True:
+                file, result, _wbox, method = self._result_queue.get_nowait()
+                if file is self._sentinel:
+                    self._cleanup(self._stat_counter, _wbox, method)
+                    self._stat_counter.clear()
+                    break
+                else:
+                    self._gradual_update(file, self._stat_counter, result)
         except queue.Empty:
             # let parent widget call it again after `wait_time`
             _call_later()
-        else:
-            if file is self._sentinel:
-                self._cleanup(self._stat_counter, _wbox, method)
-                self._stat_counter.clear()
-                return
-            else:
-                self._gradual_update(file, self._stat_counter, result)
-                _call_later()
 
     def _gradual_update(self, file, stat_dict, result):
         """
