@@ -91,7 +91,7 @@ def files_locker(*files,
                     # yield invalid files.
                     yield (each, size_or_stat)
                 else:
-                    file_q.put_nowait((each, size_or_stat))
+                    file_q.put_nowait((size_or_stat, each))
 
             try:
                 # get all the files and add to fut set
