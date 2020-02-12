@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Locker v0.4.2 (follows new protocol)
+# Locker v0.4.3 (follows new protocol)
 # Implemented as function
 #
 # =============================================================================
@@ -112,12 +112,11 @@ def locker(file_path,
         new_file = new_file or os.path.splitext(file_path)[0]
 
         with open(file_path, 'rb') as file:
-            check_metadata = file.read(len(metadata))
-            if not check_metadata == metadata:
+            if not file.read(len(metadata)) == metadata:
                 raise RuntimeError("The file is not supported. "
                                    "The file might be tampered.")
 
-            mac, nonce, salt = unpack('16s{}s{}s'.format(nonce_len, salt_len),
+            mac, nonce, salt = unpack(f'16s{nonce_len}s{salt_len}s',
                                       file.read(16 + nonce_len + salt_len))
     # The file is being encrypted.
     else:
