@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Locker v0.4.3 (follows new protocol)
+# Locker v0.4.4 (follows new protocol)
 # Implemented as function
 #
 # =============================================================================
@@ -42,16 +42,6 @@ class DecryptionError(InvalidTag):
     pass
 
 
-def _get_cipher(key, nonce, flag):
-    """Get the Cipher object with required mode."""
-    if flag:
-        return Cipher(AES(key), modes.GCM(nonce),
-                      default_backend()).encryptor()
-    else:
-        return Cipher(AES(key), modes.GCM(nonce),
-                      default_backend()).decryptor()
-
-
 def locker(file_path,
            password,
            remove=True,
@@ -79,10 +69,9 @@ def locker(file_path,
                    (Default: True).
     :param algo: The PBKDF2 hashing algorithm to use.
     :param metadata: associated metadata written to file.
-    :param dklen: length of key after PBK derivation.
-    :param iterations: no. of iterations to derive the the key from
-                       the password.
-    :param ext: extension to be appended to the files.
+    :param dklen: length of key after key derivation.
+    :param iterations: no. of iterations for key derivation.
+    :param ext: extension to be used for the new file.
     :param block_size: valid block size in int for reading files.
     :param new_file: set new file path to be written upon.
     :param method: set method manually (`encrypt` or `decrypt`)
@@ -91,22 +80,10 @@ def locker(file_path,
     :return: None
     """
 
-    # check for new-file's existence
-    if new_file is not None:
-        if os.path.exists(new_file):
-            if os.path.samefile(file_path, new_file):
-                raise ValueError(f'Cannot process with the same file.')
-            os.remove(new_file)
+    # check for the validity of the given filepaths, exts and methods.
+    method = _prepare(file_path, new_file, ext, method)
 
-    # check for method validity
-    if method is not None:
-        if method not in ['encrypt', 'decrypt']:
-            raise ValueError(f'Invalid method: `{method}`. '
-                             'Method can be "encrypt" or "decrypt" only.')
-
-    # guess the method from the extension,
-    # unless the method is explicitly specified
-    method = method or ('decrypt' if file_path.endswith(ext) else 'encrypt')
+    # the file is being decrypted.
     if method == 'decrypt':
         flag = False
         new_file = new_file or os.path.splitext(file_path)[0]
@@ -124,19 +101,20 @@ def locker(file_path,
         new_file = new_file or (file_path + ext)
         nonce = os.urandom(nonce_len)
         salt = os.urandom(salt_len)
-        mac = None
+        mac = None  # It would be calculated after encryption of file.
 
     # Create a *password_hash* and *cipher* with required method.
     password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
                                         dklen)
     cipher_obj = _get_cipher(password_hash, nonce, flag)
+    # add the metadata before proceeding.
     cipher_obj.authenticate_additional_data(metadata)
 
     try:
         _writer(file_path,
                 new_file,
-                cipher_obj,
-                flag,
+                cipher=cipher_obj,
+                flag=flag,
                 nonce=nonce,
                 mac_tag=mac,
                 mac_func=lambda: cipher_obj.tag,
@@ -144,6 +122,7 @@ def locker(file_path,
                 block_size=block_size,
                 metadata=metadata)
     except InvalidTag:
+        # only happens when file is being decrypted.
         os.remove(new_file)
         raise DecryptionError('Invalid Password or tampered data.') from None
 
@@ -151,7 +130,7 @@ def locker(file_path,
         os.remove(file_path)
 
 
-def _writer(file_path, new_file, method, flag, salt, nonce, mac_func, mac_tag,
+def _writer(file_path, new_file, cipher, flag, salt, nonce, mac_func, mac_tag,
             block_size, metadata):
     """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
@@ -159,42 +138,36 @@ def _writer(file_path, new_file, method, flag, salt, nonce, mac_func, mac_tag,
     of the file_path of fixed length, specified by *block_size*.
 
     :param file_path: File to be written on.
-    :param new_file: Name of the encrypted/decrypted file to written upon.
-    :param method: Cipher object for encryption/decryption.
+    :param new_file: Name of the encrypted/decrypted file.
+    :param cipher: A cipher object for encryption/decryption.
     :param flag: This is to identify if the method being used is for
                  encryption or decryption.
                  If the flag is *True*, then file is encrypted, and
                  decrypted otherwise.
-    :param salt: Salt from the PBKDF2
-    :param metadata: Associated data to be written to the file
+    :param salt: Salt from the password derivation.
+    :param metadata: Associated data to be written to the file.
     :param block_size: Reading block size, in bytes.
-    :param mac_func: bound method of AES object for calculating MAC-tag.
-    :param mac_tag: bytes object (the MAC-tag for verification
-                    after decryption)
-    :param nonce: nonce used with the key.
+    :param mac_func: callable for calculating MAC-tag.
+    :param mac_tag: bytes object (the MAC-tag for verification after
+                    decryption). This is retrieved when *file_path*
+                    is decrypted.
+    :param nonce: nonce used with the cipher object.
     :return: None
     """
-
-    meta_len = len(metadata)
-    nonce_len = len(nonce)
-    salt_len = len(salt)
-
     with open(file_path, 'rb') as infile:
         with open(new_file, 'wb+') as outfile:
             # optimization purposes :)
             outfile_write = outfile.write
-            crp = method.update
+            crp = cipher.update
 
             if flag:
                 # Create a placeholder for writing the *mac*.
                 # and append *nonce* and *salt* before encryption.
-                # Also, add a metadata indicating encrypted file.
-                plh_nonce_salt = metadata + (b'\x00' * 16) + nonce + salt
-                outfile_write(plh_nonce_salt)
+                outfile_write(metadata + (b'\x00' * 16) + nonce + salt)
 
             else:
                 # Moving ahead towards the encrypted data.
-                infile.seek(meta_len + 16 + nonce_len + salt_len)
+                infile.seek(len(metadata) + 16 + len(nonce) + len(salt))
 
             # create an iterable object for getting blocks.
             # this is a recipe from Python Cookbook.
@@ -205,8 +178,49 @@ def _writer(file_path, new_file, method, flag, salt, nonce, mac_func, mac_tag,
             # write mac-tag to the file.
             if flag:
                 # finish off encryption! (...and write the MAC-tag)
-                method.finalize()
-                outfile.seek(meta_len)
+                cipher.finalize()
+                outfile.seek(len(metadata))
                 outfile.write(mac_func())
             else:
-                method.finalize_with_tag(mac_tag)
+                # file was decrypted. Check if the decryption was all OK...
+                cipher.finalize_with_tag(mac_tag)
+
+
+def _get_cipher(key, nonce, flag):
+    """Get the Cipher object with required mode."""
+    if flag:
+        return Cipher(AES(key), modes.GCM(nonce),
+                      default_backend()).encryptor()
+    else:
+        return Cipher(AES(key), modes.GCM(nonce),
+                      default_backend()).decryptor()
+
+
+def _prepare(file1, file2, ext, method):
+    """
+    Preparation done before proceeding further for
+    encryption or decryption.
+    """
+    _check_same_file(file1, file2)
+    return _check_method(file1, ext, method)
+
+
+def _check_same_file(file1, file2):
+    """Checks if two files given are same."""
+    if os.path.samefile(file1, file2):
+        raise ValueError(f'Cannot process with the same file.')
+
+
+def _check_method(file, ext, method):
+    """
+    Checks the validity of method given.
+    If not given, it is guessed from the file's extension.
+    """
+    if method is None:
+        return ('decrypt' if os.path.splitext(ext)[1] == ext else 'encrypt')
+    else:
+        if method not in ['encrypt', 'decrypt']:
+            raise ValueError(f"Invalid method: '{method}'. Method can be "
+                             f"'encrypt' or 'decrypt' only.")
+        else:
+            return method
