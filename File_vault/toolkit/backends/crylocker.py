@@ -217,7 +217,7 @@ def _check_method(file, ext, method):
     If not given, it is guessed from the file's extension.
     """
     if method is None:
-        return ('decrypt' if os.path.splitext(ext)[1] == ext else 'encrypt')
+        return ('decrypt' if os.path.splitext(file)[1] == ext else 'encrypt')
     else:
         if method not in ['encrypt', 'decrypt']:
             raise ValueError(f"Invalid method: '{method}'. Method can be "
