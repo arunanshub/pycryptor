@@ -96,7 +96,7 @@ def files_locker(*files,
             try:
                 # get all the files and add to fut set
                 while True:
-                    each, _ = file_q.get_nowait()
+                    _, each = file_q.get_nowait()
                     fut.add((exc.submit(_locker, each), each))
             except queue.Empty:
                 pass
