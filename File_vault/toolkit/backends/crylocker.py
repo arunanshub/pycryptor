@@ -207,8 +207,9 @@ def _prepare(file1, file2, ext, method):
 
 def _check_same_file(file1, file2):
     """Checks if two files given are same."""
-    if os.path.samefile(file1, file2):
-        raise ValueError(f'Cannot process with the same file.')
+    if file2 is not None:
+        if os.path.samefile(file1, file2):
+            raise ValueError(f'Cannot process with the same file.')
 
 
 def _check_method(file, ext, method):
