@@ -94,7 +94,7 @@ def files_locker(*files,
                     file_q.put_nowait((size_or_stat, each))
 
             try:
-                # get all the files and add to fut set
+                # get all the files and add to `future` set
                 while True:
                     _, each = file_q.get_nowait()
                     fut.add((exc.submit(_locker, each), each))
@@ -135,15 +135,22 @@ def _to_paths(files):
 
 def _check_ext(paths, ext=None, lock=False):
     """
-    Yield workable (file, size) pair;
-    # TODO
+    This function checks if the `path` in paths end with
+    the extension. It shows two behaviors::
+
+    - If `lock` is `True`, the files that *DO NOT* end with
+      the given extension `ext` are yielded.
+      Those end with `ext` are marked as invalid.
+
+    - If `lock` is `False`, the files that end with `ext` are
+      yielded. Those *DO NOT* end with `ext` are marked as invalid.
     """
     if ext:
         # `ext` is the encrypted file's extension.
         if not lock:
-            _check = lambda each, ext=ext: each.endswith(ext)
+            _check = lambda each, ext=ext: os.path.splitext(each)[1] == ext
         else:
-            _check = lambda each, ext=ext: not each.endswith(ext)
+            _check = lambda each, ext=ext: not os.path.splitext(each)[1] == ext
         getsize = os.path.getsize
         # iterate over the file-paths
         for each in paths:
