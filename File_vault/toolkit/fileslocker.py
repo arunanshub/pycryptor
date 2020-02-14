@@ -28,7 +28,7 @@ def files_locker(*files,
     files.
 
     The maximum number of process spawned depends on the number of
-    available cores on the system by default. It defaults to `cpu_count / 2`.
+    available cores on the system by default. It defaults to `cpu_count // 2`.
     Internally, PriorityQueue is used for selection of smallest file first,
     which is quick to encrypt or decrypt.
 
@@ -68,7 +68,7 @@ def files_locker(*files,
         from .backends import crylocker as backend
 
     # some useful variables
-    _cpu_count = max_workers or os.cpu_count()
+    _cpu_count = max_workers or (os.cpu_count() // 2)
     _locker = partial(backend.locker, password=password, ext=ext, **kwargs)
 
     with futures.ProcessPoolExecutor(_cpu_count) as exc:
