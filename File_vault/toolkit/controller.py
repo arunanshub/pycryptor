@@ -83,7 +83,7 @@ class Controller:
             method="decrypt",
         )
 
-    def _produce_task(self, file_items, password, _wbox, lock, **kwargs):
+    def _produce_task(self, file_items, password, lock, **kwargs):
         """
         Puts the result tuple, waitbox widget and task-method in a queue.
         This is a blocking code and runs in a thread.
@@ -94,13 +94,8 @@ class Controller:
                                              **kwargs):
             # put the (filename, result, waitbox-variable, method) in the
             # result queue.
-            self._result_queue.put_nowait((
-                *file_res,
-                _wbox,
-                kwargs['method'],
-            ))
-        self._result_queue.put_nowait((self._sentinel, ) * 2 +
-                                      (_wbox, kwargs['method']))
+            self._result_queue.put_nowait((*file_res, ))
+        self._result_queue.put_nowait((self._sentinel, ) * 2)
 
     def _submit_task(self, file_items, password, **kwargs):
         """
@@ -114,14 +109,15 @@ class Controller:
             lock = True if kwargs['method'] == 'encrypt' else False
 
             # create a producer thread and run in parallel
-            threading.Thread(target=lambda: self._produce_task(
-                file_items, password, _wbox, lock=lock, **kwargs)).start()
+            threading.Thread(target=self._produce_task,
+                             args=(file_items, password, lock),
+                             kwargs=kwargs).start()
 
             # start the consumer and the waitbox.
-            self._consume_task()
+            self._consume_task(_wbox, kwargs['method'])
             _wbox.mainloop()
 
-    def _consume_task(self):
+    def _consume_task(self, wbox, method):
         """The consumer function.
         This function is called periodically to check for results, which
         were put into the `_result_queue` by the producer thread.
@@ -129,20 +125,20 @@ class Controller:
         A sentinel object is used for shutting down the operation and
         showing the results.
         """
-        _call_later = lambda: self.parent.after(self.wait_time, self.
-                                                _consume_task)
         try:
+            # try to get any available results that may be in the queue.
             while True:
-                file, result, _wbox, method = self._result_queue.get_nowait()
+                file, result = self._result_queue.get_nowait()
                 if file is self._sentinel:
-                    self._cleanup(self._stat_counter, _wbox, method)
+                    self._cleanup(self._stat_counter, wbox, method)
                     self._stat_counter.clear()
                     break
                 else:
+                    # update the counter wrt the file and it's result.
                     self._gradual_update(file, self._stat_counter, result)
         except queue.Empty:
             # let parent widget call it again after `wait_time`
-            _call_later()
+            self.parent.after(self.wait_time, self._consume_task, wbox, method)
 
     def _gradual_update(self, file, stat_dict, result):
         """
