@@ -30,7 +30,7 @@ class MainApplication(tk.Frame):
     key_lens = (16, 24, 32)
     backends = [k for k, v in backloader.backends().items() if v]
 
-    version_no = "2.3.4"
+    version_no = "2.3.5"
 
     # general help, about, and formalities... :)
     aboutmsg = messages.aboutmsg
@@ -116,7 +116,7 @@ class MainApplication(tk.Frame):
         )
         filemenu1.add_separator()
         filemenu1.add_command(label="Configure...",
-                              command=lambda: self.config_box())
+                              command=lambda: self.show_config_box())
         filemenu1.add_separator()
         filemenu1.add_command(label="Exit", command=lambda: root.destroy())
 
@@ -238,17 +238,17 @@ class MainApplication(tk.Frame):
         self._set_title()
         self.parent.protocol("WM_DELETE_WINDOW", self.parent.destroy)
 
-    def config_box(self):
-        self.conf = tk.Toplevel(self.parent)
-        self._dklen = tk.IntVar(self.conf, self.dklen, "_dklen")
-        self._backend = tk.StringVar(self.parent, self.backends[0], "_backend")
+    def show_config_box(self):
+        configbox = tk.Toplevel(self.parent)
+        _dklen = tk.IntVar(configbox, self.dklen, "_dklen")
+        _backend = tk.StringVar(self.parent, self.backends[0], "_backend")
 
-        self.conf.resizable(0, 0)
-        self.conf.geometry("300x175")
-        self.conf.title("Pycryptor Configurations")
+        configbox.resizable(0, 0)
+        configbox.geometry("300x175")
+        configbox.title("Pycryptor Configurations")
 
         # Elements of the config box
-        fr = tk.LabelFrame(self.conf, text="Pycryptor Configuration")
+        fr = tk.LabelFrame(configbox, text="Pycryptor Configuration")
         fr.place(x=10, y=10, height=120, width=280)
 
         # row 1 == Extension name
@@ -256,67 +256,73 @@ class MainApplication(tk.Frame):
             fr,
             text="Encryption Extension:",
         ).place(x=5, y=5)
-        self.ext = ttk.Entry(fr, width=15)
-        self.ext.insert(0, self.extension)
-        self.ext.place(x=150, y=5)
+        _ext = ttk.Entry(fr, width=15)
+        _ext.insert(0, self.extension)
+        _ext.place(x=150, y=5)
 
         # row 2 == Key length
         tk.Label(fr, text="Key Length:").place(x=70, y=35)
-        opm = ttk.OptionMenu(fr, self._dklen, self.dklen, *self.key_lens)
+        opm = ttk.OptionMenu(fr, _dklen, self.dklen, *self.key_lens)
         opm.config(width=9)
         opm.place(x=150, y=35)
 
         # row 3 == Default backend
         tk.Label(fr, text="Backend:").place(x=87, y=70)
-        opm2 = ttk.OptionMenu(fr, self._backend, self.backend, *self.backends)
+        opm2 = ttk.OptionMenu(fr, _backend, self.backend, *self.backends)
         opm2.config(width=9)
         opm2.place(x=150, y=70)
 
         # after the frame
         # the Buttons (Apply, Cancel, Help)
         ttk.Button(
-            self.conf,
+            configbox,
             text="Help",  # help button
-            command=lambda: messagebox.showinfo("Configuration Help", self.
-                                                config_help),
+            command=lambda: messagebox.showinfo(
+                "Configuration Help",
+                self.config_help,
+            ),
         ).place(x=10, y=140)
 
-        ttk.Button(
-            self.conf,
-            text="Apply",
-            command=self.config_apply  # apply button
-        ).place(x=108, y=140)
+        ttk.Button(configbox,
+                   text="Apply",
+                   command=lambda: self.config_apply(
+                       configbox,
+                       _ext,
+                       _dklen,
+                       _backend,
+                   )).place(x=108, y=140)  # apply button
 
         ttk.Button(  # cancel button
-            self.conf,
+            configbox,
             text="Cancel",
-            command=self.conf.destroy).place(x=206, y=140)
+            command=configbox.destroy).place(x=206, y=140)
 
         if self.parent.iconname() is not None:
-            self.conf.iconbitmap(self.parent.iconname())
+            configbox.iconbitmap(self.parent.iconname())
 
-        self.conf.transient(self.parent)
-        self.conf.focus_set()
-        self.conf.grab_set()
-        self.conf.wait_window()
+        configbox.transient(self.parent)
+        configbox.focus_set()
+        configbox.grab_set()
+        configbox.wait_window()
 
-    def config_apply(self):
+    def config_apply(self, configbox, extvar, dklenvar, backendvar):
         # check for extension validity
-        if not re.fullmatch(r"^\.[\w|\d]+", self.ext.get()):
+        if not re.fullmatch(r"^\.[\w|\d]+", extvar.get()):
             messagebox.showerror("Extension Error", "Invalid Extension")
             return
 
         # set extension and key length
-        self.dklen = self._dklen.get()
-        self.extension = self.ext.get()
+        self.dklen = dklenvar.get()
+        self.extension = extvar.get()
 
         # change the backend name and Title of the app :)
-        self.backend = self._backend.get()
+        self.backend = backendvar.get()
         self._set_title(f"Pycryptor - using backend {self.backend}")
 
         # change the backend module to the user's option.
         self.backend_module = backloader.change_backend(self.backend)
-        self.conf.destroy()
+
+        configbox.destroy()
 
     def _set_title(self, title=None):
         default = f"Pycryptor - using backend {self.backend}"
