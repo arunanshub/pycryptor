@@ -31,10 +31,10 @@ import os
 from struct import unpack
 from functools import partial
 
-from pkgutil import find_loader
+from importlib.util import find_spec
 
 # Compatibility with Crypto (pycryptodome)
-if find_loader('Crypto') and int(__import__('Crypto').__version__[0]) >= 3:
+if find_spec('Crypto') and int(__import__('Crypto').__version__[0]) >= 3:
     from Crypto.Cipher import AES
 else:
     from Cryptodome.Cipher import AES
@@ -135,7 +135,7 @@ def locker(file_path,
         os.remove(file_path)
 
 
-def _writer(file_path, new_file, method, flag, salt, nonce, mac_func,
+def _writer(file_path, new_file, cipher, flag, salt, nonce, mac_func,
             block_size, metadata):
     """Facilitates reading/writing to/from file.
     This function facilitates reading from *file_path* and writing to
@@ -173,7 +173,7 @@ def _writer(file_path, new_file, method, flag, salt, nonce, mac_func,
             # this is a recipe from Python Cookbook.
             blocks = iter(partial(infile.read, block_size), b'')
             for data in blocks:
-                outfile_write(method(data))
+                outfile_write(cipher(data))
 
             # write mac-tag to the file.
             if flag:
