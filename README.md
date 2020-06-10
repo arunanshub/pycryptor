@@ -23,8 +23,8 @@ the long run.
 locking API. This also means, the file header format that are used to store
 the metadata will be changed for a newer format.**
 
-This is the core of Pycryptor. These two modules [`pylocker.py`][1] and
-[`crylocker.py`][2] can be used as standalone file lockers. Actually,
+This is the core of Pycryptor. These two modules [`pylocker.py`][4] and
+[`crylocker.py`][5] can be used as standalone file lockers. Actually,
 that was my idea for this repo. But eventually, the app was made (and the
 rest is Pycryptor).
 
@@ -152,11 +152,9 @@ The ransomware has been removed due to difficulty in maintenance
 But it would probably be released in a separate repo.
 
 
-[1]: <pylocker.py>
-[2]: <crylocker.py>
-[3]: <File_vault/toolkit/backends>
-[4]: <File_vault/toolkit/backends/pylocker.py>
-[5]: <File_vault/toolkit/backends/crylocker.py>
+[3]: <Pycryptor/toolkit/backends>
+[4]: <Pycryptor/toolkit/backends/pylocker.py>
+[5]: <Pycryptor/toolkit/backends/crylocker.py>
 [6]: <https://github.com/Legrandin/pycryptodome#pycryptodome>
 [7]: <https://github.com/pyca/cryptography#pycacryptography>
 
