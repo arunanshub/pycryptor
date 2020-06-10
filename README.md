@@ -2,7 +2,7 @@
 
 A pure Python file vault, backed by the powerful cryptographic libraries,
 namely [`Pycryptodome(x)`][6] and [`cryptography`][7]. Inspired by the
-other cryptographicfile locking apps on the internet today, this app was
+other cryptographic file locking apps on the internet today, this app was
 born to serve the same purpose, although faster.
 
 
@@ -13,7 +13,7 @@ locker module, which is kept in [`toolkit/backends`][3].
 
 The app has been designed in such a way that it is easy for the user to
 modify and incorporate it in their own projects. Feel free to test it
-andnprovide feedback to me. This would help me to improve this app in
+and provide feedback to me. This would help me to improve this app in
 the long run.
 
 
@@ -105,7 +105,7 @@ Both the lockers are quite straightforward to use
 	# then the file would be locked with the given params.
 	```
 	
-	Changing the method(or mode) used by the locker
+	Changing the method (or mode) used by the locker
 	
 	```python
 	# Suppose you have a file 'foolocked.txt' and you want
