@@ -90,13 +90,11 @@ def locker(file_path,
 
         with open(file_path, 'rb') as file:
             if not file.read(len(metadata)) == metadata:
-                raise RuntimeError(
-                    "The file is not supported. "
-                    "The file might be tampered.")
+                raise RuntimeError("The file is not supported. "
+                                   "The file might be tampered.")
 
-            mac, nonce, salt = unpack(
-                f'16s{nonce_len}s{salt_len}s',
-                file.read(16 + nonce_len + salt_len))
+            mac, nonce, salt = unpack(f'16s{nonce_len}s{salt_len}s',
+                                      file.read(16 + nonce_len + salt_len))
 
     # The file is being encrypted.
     else:
@@ -106,46 +104,41 @@ def locker(file_path,
         salt = os.urandom(salt_len)
         mac = None  # It would be calculated after encryption of file.
 
-    password_hash = hashlib.pbkdf2_hmac(
-        algo, password, salt, iterations, dklen)
-    cipher_obj = _get_cipher(
-        password_hash, nonce, flag)
+    password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
+                                        dklen)
+    cipher_obj = _get_cipher(password_hash, nonce, flag)
 
     cipher_obj.authenticate_additional_data(metadata)
 
     try:
         with open(file_path, 'rb') as infile, \
             open(new_file, 'wb') as outfile:
-            _writer(
-                infile,
-                outfile,
-                cipher=cipher_obj,
-                flag=flag,
-                nonce=nonce,
-                tag=mac,
-                salt=salt,
-                blocksize=blocksize,
-                metadata=metadata)
+            _writer(infile,
+                    outfile,
+                    cipher=cipher_obj,
+                    flag=flag,
+                    nonce=nonce,
+                    tag=mac,
+                    salt=salt,
+                    blocksize=blocksize,
+                    metadata=metadata)
     except InvalidTag:
         os.remove(new_file)
-        raise DecryptionError(
-            'Invalid Password or tampered data.') from None
+        raise DecryptionError('Invalid Password or tampered data.') from None
 
     if remove:
         os.remove(file_path)
 
 
-def _writer(infile, outfile, cipher, flag,
-            salt, nonce, tag,
-            blocksize, metadata):
+def _writer(infile, outfile, cipher, flag, salt, nonce, tag, blocksize,
+            metadata):
     write = outfile.write
     crpup = cipher.update_into
 
     if flag:
         write(metadata + bytes(16) + nonce + salt)
     else:
-        infile.seek(len(metadata) + 16 +
-                    len(nonce + salt))
+        infile.seek(len(metadata) + 16 + len(nonce + salt))
 
     buf = memoryview(bytearray(blocksize + 15))
     rbuf = buf[:blocksize]

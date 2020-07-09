@@ -92,13 +92,11 @@ def locker(file_path,
         # Retrieve the *nonce* and *salt*.
         with open(file_path, 'rb') as file:
             if not file.read(len(metadata)) == metadata:
-                raise RuntimeError(
-                    "The file is not supported. "
-                    "The file might be tampered.")
+                raise RuntimeError("The file is not supported. "
+                                   "The file might be tampered.")
 
-            tag, nonce, salt = unpack(
-                f'16s{nonce_len}s{salt_len}s',
-                file.read(16 + nonce_len + salt_len))
+            tag, nonce, salt = unpack(f'16s{nonce_len}s{salt_len}s',
+                                      file.read(16 + nonce_len + salt_len))
 
     # The file is being encrypted.
     else:
@@ -109,44 +107,43 @@ def locker(file_path,
         tag = None
 
     # Create a *password_hash* and *cipher* with required method.
-    password_hash = hashlib.pbkdf2_hmac(
-        algo, password, salt, iterations, dklen)
+    password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
+                                        dklen)
     cipher_obj = AES.new(
-        password_hash, AES.MODE_GCM, nonce=nonce,
-        ).update(metadata)
+        password_hash,
+        AES.MODE_GCM,
+        nonce=nonce,
+    ).update(metadata)
 
     try:
         with open(file_path, 'rb') as infile, \
             open(new_file, 'wb') as outfile:
-            _writer(
-                infile,
-                outfile,
-                cipher=cipher_obj,
-                flag=flag,
-                tag=tag,
-                nonce=nonce,
-                salt=salt,
-                blocksize=blocksize,
-                metadata=metadata)
+            _writer(infile,
+                    outfile,
+                    cipher=cipher_obj,
+                    flag=flag,
+                    tag=tag,
+                    nonce=nonce,
+                    salt=salt,
+                    blocksize=blocksize,
+                    metadata=metadata)
     except ValueError:
         os.remove(new_file)
-        raise DecryptionError(
-            'Invalid Password or tampered data.') from None
+        raise DecryptionError('Invalid Password or tampered data.') from None
 
     if remove:
         os.remove(file_path)
 
 
-def _writer(infile, outfile, cipher, flag, tag,
-            salt, nonce, blocksize, metadata):
+def _writer(infile, outfile, cipher, flag, tag, salt, nonce, blocksize,
+            metadata):
     write = outfile.write
 
     if flag:
         write(metadata + bytes(16) + nonce + salt)
         crpup = cipher.encrypt
     else:
-        infile.seek(len(metadata) + 16 +
-                    len(nonce + salt))
+        infile.seek(len(metadata) + 16 + len(nonce + salt))
         crpup = cipher.decrypt
 
     buf = memoryview(bytearray(blocksize))
