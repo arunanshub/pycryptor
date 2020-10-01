@@ -12,6 +12,7 @@ class Controller:
     This controls the behavior of Listbox and Encrypt/Decrypt
     button. It also displays the message with respect to the context.
     """
+
     _result_queue = queue.Queue()
     wait_time = 250
     _sentinel = object()
@@ -39,7 +40,7 @@ class Controller:
             return
         for each in file_path:
             if each not in self.file_items:
-                self.tk_listbox.insert('end', each)
+                self.tk_listbox.insert("end", each)
                 self.file_items.append(each)
 
     def remove(self):
@@ -54,7 +55,7 @@ class Controller:
             messagebox.showerror("Error", "No files selected.")
 
     def remove_all(self):
-        self.tk_listbox.delete(0, 'end')
+        self.tk_listbox.delete(0, "end")
         self.file_items.clear()
 
     def encrypt(self, password, ext, dklen, backend):
@@ -88,14 +89,13 @@ class Controller:
         Puts the result tuple, waitbox widget and task-method in a queue.
         This is a blocking code and runs in a thread.
         """
-        for file_res in flocker.files_locker(*file_items,
-                                             password=password,
-                                             lock=lock,
-                                             **kwargs):
+        for file_res in flocker.files_locker(
+            *file_items, password=password, lock=lock, **kwargs
+        ):
             # put the (filename, result, waitbox-variable, method) in the
             # result queue.
-            self._result_queue.put_nowait((*file_res, ))
-        self._result_queue.put_nowait((self._sentinel, ) * 2)
+            self._result_queue.put_nowait((*file_res,))
+        self._result_queue.put_nowait((self._sentinel,) * 2)
 
     def _submit_task(self, file_items, password, **kwargs):
         """
@@ -104,17 +104,19 @@ class Controller:
 
         Works on producer-consumer model.
         """
-        if self._prepare(self.file_items, password, kwargs['method']):
-            _wbox = self._waitbox(kwargs['method'])
-            lock = True if kwargs['method'] == 'encrypt' else False
+        if self._prepare(self.file_items, password, kwargs["method"]):
+            _wbox = self._waitbox(kwargs["method"])
+            lock = True if kwargs["method"] == "encrypt" else False
 
             # create a producer thread and run in parallel
-            threading.Thread(target=self._produce_task,
-                             args=(file_items, password, lock),
-                             kwargs=kwargs).start()
+            threading.Thread(
+                target=self._produce_task,
+                args=(file_items, password, lock),
+                kwargs=kwargs,
+            ).start()
 
             # start the consumer and the waitbox.
-            self._consume_task(_wbox, kwargs['method'])
+            self._consume_task(_wbox, kwargs["method"])
             _wbox.mainloop()
 
     def _consume_task(self, wbox, method):
@@ -159,7 +161,7 @@ class Controller:
         # and the result is shown.
         _wbox.destroy()
         self.parent.update()
-        self.parent.protocol('WM_DELETE_WINDOW', self.parent.destroy)
+        self.parent.protocol("WM_DELETE_WINDOW", self.parent.destroy)
         self._show_msgbox_result(stat_dict, method)
 
     def _show_msgbox_result(self, stat_dict, method):
@@ -175,7 +177,8 @@ class Controller:
                 failed=stat_dict.get(flocker.FAILURE, 0),
                 fnf=stat_dict.get(flocker.FILE_NOT_FOUND, 0),
                 ign=stat_dict.get(flocker.INVALID, 0),
-            ))
+            ),
+        )
 
     def _change_listbox_color(self, file, result):
         index = self.tk_listbox.get(0, "end").index(file)
@@ -198,16 +201,18 @@ class Controller:
         # general errors
         if not len(file_items):
             messagebox.showerror(
-                "Error", "No files has been selected "
-                f"for {method}ion.")
+                "Error", "No files has been selected " f"for {method}ion."
+            )
             return
         elif not len(password):
-            messagebox.showerror("Error",
-                                 f"No password entered for {method}ion.")
+            messagebox.showerror(
+                "Error", f"No password entered for {method}ion."
+            )
             return
         elif len(password) < 8:
-            messagebox.showerror("Error",
-                                 "Password must be greater than 8 bytes.")
+            messagebox.showerror(
+                "Error", "Password must be greater than 8 bytes."
+            )
             return
         # all correct...
         else:
@@ -229,14 +234,14 @@ class Controller:
         ttk.Label(
             fr,
             text=messages.waitbox_msg.format(method=method),
-        ).pack(anchor='center')
+        ).pack(anchor="center")
 
         if self.parent.iconname() is not None:
             top.iconbitmap(self.parent.iconname())
 
         # User cannot destroy windows manually while program is running
-        top.protocol('WM_DELETE_WINDOW', lambda: None)
-        self.parent.protocol('WM_DELETE_WINDOW', lambda: None)
+        top.protocol("WM_DELETE_WINDOW", lambda: None)
+        self.parent.protocol("WM_DELETE_WINDOW", lambda: None)
         top.transient(self.parent)
         top.focus_set()
         top.grab_set()

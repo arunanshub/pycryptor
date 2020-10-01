@@ -22,8 +22,9 @@ def walker(path, exts=None, *, absolute=False, lock=False):
     if not lock:
         _check_ext = lambda each, exts=exts: os.path.splitext(each)[1] in exts
     else:
-        _check_ext = lambda each, exts=exts: not os.path.splitext(each)[
-            1] in exts
+        _check_ext = (
+            lambda each, exts=exts: not os.path.splitext(each)[1] in exts
+        )
 
     for (root, _, files) in os.walk(path):
         for each in files:

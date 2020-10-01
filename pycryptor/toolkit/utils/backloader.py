@@ -11,11 +11,14 @@ def backends():
     Backend selector for efficient handling of things :)
     """
     x = {
-        'Cryptodome': (True if find_loader('Cryptodome') else False),
-        'Crypto':
-        (True if find_loader('Crypto')
-         and int(__import__('Crypto').__version__[0]) >= 3 else False),
-        'cryptography': (True if find_loader('cryptography') else False)
+        "Cryptodome": (True if find_loader("Cryptodome") else False),
+        "Crypto": (
+            True
+            if find_loader("Crypto")
+            and int(__import__("Crypto").__version__[0]) >= 3
+            else False
+        ),
+        "cryptography": (True if find_loader("cryptography") else False),
     }
     return x
 
@@ -31,14 +34,14 @@ def get_backend():
 
     if all(backends_.values()):
         # favour cryptography as this is faster
-        return 'cryptography'
+        return "cryptography"
 
-    elif not all(backends_.values()) and backends_['cryptography']:
-        return 'cryptography'
-    elif not all(backends_.values()) and backends_['Cryptodome']:
-        return 'Cryptodome'
+    elif not all(backends_.values()) and backends_["cryptography"]:
+        return "cryptography"
+    elif not all(backends_.values()) and backends_["Cryptodome"]:
+        return "Cryptodome"
     else:
-        return 'Crypto'
+        return "Crypto"
 
 
 def change_backend(backend):
@@ -54,9 +57,9 @@ def change_backend(backend):
     appropriate backend (here `crylocker` or `pylocker`)
 
     """
-    if backend == 'Cryptodome' or backend == 'Crypto':
+    if backend == "Cryptodome" or backend == "Crypto":
         from ..backends import pylocker as locker
-    elif backend == 'cryptography':
+    elif backend == "cryptography":
         from ..backends import crylocker as locker
     else:
         raise NotImplementedError

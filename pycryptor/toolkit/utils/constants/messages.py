@@ -49,10 +49,14 @@ config_help = """Help for Options > Configure:
                 used by Pycryptor may lead to problems.
 """
 
-waitbox_msg = ("Please wait while your files are being {method}ed...\n"
-               "Exiting the app while it is running may result in\n"
-               "data corruption.")
+waitbox_msg = (
+    "Please wait while your files are being {method}ed...\n"
+    "Exiting the app while it is running may result in\n"
+    "data corruption."
+)
 
-no_backend_error = ("Pycryptor needs a backend for encryption and "
-                    "decryption, but it was not found. Please "
-                    "configure your system properly.")
+no_backend_error = (
+    "Pycryptor needs a backend for encryption and "
+    "decryption, but it was not found. Please "
+    "configure your system properly."
+)

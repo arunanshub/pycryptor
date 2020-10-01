@@ -34,7 +34,7 @@ from functools import partial
 from importlib.util import find_spec
 
 # Compatibility with Crypto (pycryptodome)
-if find_spec('Crypto') and int(__import__('Crypto').__version__[0]) >= 3:
+if find_spec("Crypto") and int(__import__("Crypto").__version__[0]) >= 3:
     from Crypto.Cipher import AES
 else:
     from Cryptodome.Cipher import AES
@@ -44,20 +44,22 @@ class DecryptionError(ValueError):
     pass
 
 
-def locker(file_path,
-           password,
-           remove=True,
-           *,
-           method=None,
-           new_file=None,
-           blocksize=16 * 1024,
-           ext='.0DAY',
-           iterations=50000,
-           dklen=32,
-           metadata=b'Encrypted-with-Pycryptor',
-           algo='sha256',
-           salt_len=32,
-           nonce_len=12):
+def locker(
+    file_path,
+    password,
+    remove=True,
+    *,
+    method=None,
+    new_file=None,
+    blocksize=16 * 1024,
+    ext=".0DAY",
+    iterations=50000,
+    dklen=32,
+    metadata=b"Encrypted-with-Pycryptor",
+    algo="sha256",
+    salt_len=32,
+    nonce_len=12,
+):
     """Provides file locking/unlocking mechanism
     This function either encrypts or decrypts the file - *file_path*.
     Encryption or decryption depends upon the file's extension.
@@ -85,18 +87,21 @@ def locker(file_path,
     method = _prepare(file_path, new_file, ext, method)
 
     # The file is being decrypted.
-    if method == 'decrypt':
+    if method == "decrypt":
         flag = False
         new_file = new_file or os.path.splitext(file_path)[0]
 
         # Retrieve the *nonce* and *salt*.
-        with open(file_path, 'rb') as file:
+        with open(file_path, "rb") as file:
             if not file.read(len(metadata)) == metadata:
-                raise RuntimeError("The file is not supported. "
-                                   "The file might be tampered.")
+                raise RuntimeError(
+                    "The file is not supported. The file might be tampered."
+                )
 
-            tag, nonce, salt = unpack(f'16s{nonce_len}s{salt_len}s',
-                                      file.read(16 + nonce_len + salt_len))
+            tag, nonce, salt = unpack(
+                f"16s{nonce_len}s{salt_len}s",
+                file.read(16 + nonce_len + salt_len),
+            )
 
     # The file is being encrypted.
     else:
@@ -107,8 +112,9 @@ def locker(file_path,
         tag = None
 
     # Create a *password_hash* and *cipher* with required method.
-    password_hash = hashlib.pbkdf2_hmac(algo, password, salt, iterations,
-                                        dklen)
+    password_hash = hashlib.pbkdf2_hmac(
+        algo, password, salt, iterations, dklen
+    )
     cipher_obj = AES.new(
         password_hash,
         AES.MODE_GCM,
@@ -116,27 +122,29 @@ def locker(file_path,
     ).update(metadata)
 
     try:
-        with open(file_path, 'rb') as infile, \
-            open(new_file, 'wb') as outfile:
-            _writer(infile,
-                    outfile,
-                    cipher=cipher_obj,
-                    flag=flag,
-                    tag=tag,
-                    nonce=nonce,
-                    salt=salt,
-                    blocksize=blocksize,
-                    metadata=metadata)
+        with open(file_path, "rb") as infile, open(new_file, "wb") as outfile:
+            _writer(
+                infile,
+                outfile,
+                cipher=cipher_obj,
+                flag=flag,
+                tag=tag,
+                nonce=nonce,
+                salt=salt,
+                blocksize=blocksize,
+                metadata=metadata,
+            )
     except ValueError:
         os.remove(new_file)
-        raise DecryptionError('Invalid Password or tampered data.') from None
+        raise DecryptionError("Invalid Password or tampered data.") from None
 
     if remove:
         os.remove(file_path)
 
 
-def _writer(infile, outfile, cipher, flag, tag, salt, nonce, blocksize,
-            metadata):
+def _writer(
+    infile, outfile, cipher, flag, tag, salt, nonce, blocksize, metadata
+):
     write = outfile.write
 
     if flag:
@@ -176,7 +184,7 @@ def _check_same_file(file1, file2=None):
     if file2 is not None:
         if os.path.exists(file2):
             if os.path.samefile(file1, file2):
-                raise ValueError(f'Cannot process with the same file.')
+                raise ValueError(f"Cannot process with the same file.")
 
 
 def _check_method(file, ext, method):
@@ -185,10 +193,12 @@ def _check_method(file, ext, method):
     If not given, it is guessed from the file's extension.
     """
     if method is None:
-        return ('decrypt' if os.path.splitext(file)[1] == ext else 'encrypt')
+        return "decrypt" if os.path.splitext(file)[1] == ext else "encrypt"
     else:
-        if method not in ['encrypt', 'decrypt']:
-            raise ValueError(f"Invalid method: '{method}'. Method can be "
-                             f"'encrypt' or 'decrypt' only.")
+        if method not in ["encrypt", "decrypt"]:
+            raise ValueError(
+                f"Invalid method: '{method}'. Method can be "
+                f"'encrypt' or 'decrypt' only."
+            )
         else:
             return method

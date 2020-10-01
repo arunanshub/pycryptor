@@ -5,19 +5,15 @@ from functools import partial
 
 from .walker import walker
 
-SUCCESS = 'SUC'
-FAILURE = 'FAIL'
-INVALID = 'INV'
-FILE_NOT_FOUND = 'FNF'
+SUCCESS = "SUC"
+FAILURE = "FAIL"
+INVALID = "INV"
+FILE_NOT_FOUND = "FNF"
 
 
-def files_locker(*files,
-                 password,
-                 ext,
-                 backend=None,
-                 lock=True,
-                 max_workers=None,
-                 **kwargs):
+def files_locker(
+    *files, password, ext, backend=None, lock=True, max_workers=None, **kwargs
+):
     """
     This function encrypts or decrypts multiple files or directories
     simultaneously, thanks to `concurrent.futures.ProcessPoolExecutor`.
@@ -72,7 +68,7 @@ def files_locker(*files,
     _locker = partial(backend.locker, password=password, ext=ext, **kwargs)
 
     with futures.ProcessPoolExecutor(_cpu_count) as exc:
-        file_q = queue.PriorityQueue(_cpu_count**2)
+        file_q = queue.PriorityQueue(_cpu_count ** 2)
         all_files = _check_ext(_to_paths(files), ext=ext, lock=lock)
 
         exhausted = False
