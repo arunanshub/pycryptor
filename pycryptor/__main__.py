@@ -1,12 +1,22 @@
+import re
+import json
 import tkinter as tk
 import webbrowser
 from tkinter import ttk, filedialog, messagebox
+from pyflocker import Backends
+from pyflocker.ciphers import modes
 
+KEY_LENGTHS = (16, 24, 32)
+AES_MODES = tuple(m.name for m in set(modes.Modes) ^ modes.special)
 AES_WIKI = "https://en.wikipedia.org/wiki/Advanced_Encryption_Standard"
 ABOUT_APP = (
     "https://github.com/arunanshub/pycryptor#pycryptor---the-file-vault"
 )
 ABOUT_ME = "https://github.com/arunanshub"
+SETTINGS_HELP = """\
+General Help:
+# TODO
+"""
 
 
 class ListBox(tk.Listbox):
@@ -84,7 +94,7 @@ class ListBox(tk.Listbox):
 
 class ARCFrame(ttk.Frame):
     """Add, Remove, Clear Frame;
-        * controls ListBoxFrame
+        * controls ListBox
 
     listbox -- the listbox to control
     on_add -- Add ctrl.
@@ -198,9 +208,15 @@ class EncDecFrame(ttk.Frame):
             sticky="nsew",
         )
 
-        self.rowconfigure(1, weight=1)  # expand the buttons row-wise
+        self.rowconfigure(1, weight=1)  # expand the ARC buttons row-wise
         self.columnconfigure(0, weight=1)  # expand buttons columnwise
         self.columnconfigure(1, weight=1)  # expand buttons columnwise
+
+        # some defaults
+        self._keylen = 32
+        self._backend = Backends.CRYPTOGRAPHY
+        self._extension = ".pyflk"
+        self._aesmode = modes.Modes.MODE_GCM
 
     def on_encrypt(self):
         """Encrypt everything in the listbox."""
@@ -211,6 +227,166 @@ class EncDecFrame(ttk.Frame):
         """Decrypt everything in the listbox."""
         print("decrypting")
         print(repr(self._listbox.items), self._entry_pwd.get())
+
+    def on_configure(self):
+        var = tk.StringVar(self, name="config")
+        top = SettingsPanel(
+            var=var,
+            master=self.master,
+            keylen=self._keylen,
+            extension=self._extension,
+            backend=self._backend.name.title(),
+            aesmode=self._aesmode.name,
+        )
+        top.focus_set()
+        top.wait_visibility()
+        top.grab_set()
+        top.transient(self.master)
+        self.master.wait_window(top)
+
+        if not var.get():  # cancelled operation, nothing to set.
+            return
+
+        config = json.loads(var.get())
+        self._keylen = config["keylen"]
+        self._backend = getattr(Backends, config["backend"].upper())
+        self._extension = config["extension"]
+        self._aesmode = getattr(modes.Modes, config["aesmode"].upper())
+
+
+class SettingsPanel(tk.Toplevel):
+    def __init__(
+        self,
+        *args,
+        var,
+        extension,
+        aesmode,
+        keylen,
+        backend,
+        master,
+        **kwargs,
+    ):
+        super().__init__(*args, master=master, **kwargs)
+        self.__var = var
+        # 0. Use grid.
+        # 1. Extension: ttk.Entry
+        # 2. Key Length: ttk.OptionMenu
+        # 3. AES Mode: ttk.OptionMeneu
+        # 4. Backend: ttk.OptonMenu
+        # n. Theme: ...
+        # 5. Help, Apply, Cancel: ttk.Frame[ttk.Button]
+        # The settings must be returned to the application.
+        frame = ttk.Frame(self)
+        frame.grid(row=0, column=0, sticky="ew")
+
+        # 1. Extension: ttk.Entry
+        ttk.Label(frame, text="Extension:").grid(
+            row=0,
+            column=0,
+            sticky="ew",
+        )
+        self.entry_ext = ttk.Entry(frame)
+        self.entry_ext.insert(0, extension)
+        self.entry_ext.grid(row=0, column=1, sticky="ew")
+
+        # 2. Key Strength: ttk.OptionMenu
+        ttk.Label(frame, text="Key Length:").grid(
+            row=1,
+            column=0,
+            sticky="ew",
+        )
+
+        var_keylen = tk.IntVar(frame, name="keylen")
+        self.opt_klen = ttk.OptionMenu(
+            frame,
+            var_keylen,
+            keylen,
+            *KEY_LENGTHS,
+        )
+        self.opt_klen.grid(row=1, column=1, sticky="ew")
+
+        # 3. AES Mode: ttk.OptionMenu
+        ttk.Label(frame, text="AES Mode:").grid(
+            row=2,
+            column=0,
+            sticky="ew",
+        )
+
+        var_aesmode = tk.StringVar(frame, name="aesmode")
+        self.opt_aesmode = ttk.OptionMenu(
+            frame,
+            var_aesmode,
+            aesmode,
+            *AES_MODES,
+        )
+        self.opt_aesmode.grid(row=2, column=1, sticky="ew")
+
+        # 4. Backend: ttk.OptionMenu
+        ttk.Label(frame, text="Backend:").grid(
+            row=3,
+            column=0,
+            sticky="ew",
+        )
+
+        var_backend = tk.StringVar(frame, name="backend")
+        self.opt_backend = ttk.OptionMenu(
+            frame,
+            var_backend,
+            backend,
+            *(b.name.title() for b in list(Backends)),
+        )
+        self.opt_backend.grid(row=3, column=1, sticky="ew")
+
+        # 5. Help, Apply, Cancel
+        hacframe = ttk.Frame(frame)
+        hacframe.grid(row=4, column=0, columnspan=3, sticky="ew")
+
+        bhelp = ttk.Button(hacframe, text="Help")
+        bapply = ttk.Button(hacframe, text="Apply", command=self.on_apply)
+        bcancel = ttk.Button(hacframe, text="Cancel", command=self.destroy)
+
+        bhelp.grid(row=0, column=0, sticky="w")
+        bapply.grid(row=0, column=1, sticky="ns")
+        bcancel.grid(row=0, column=2, sticky="e")
+
+        hacframe.rowconfigure(0, weight=1)
+        for i in range(3):
+            hacframe.columnconfigure(i, weight=1)
+
+        # Allow expansion
+        self.config(padx=10, pady=10)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        for i in range(5):
+            frame.rowconfigure(i, weight=1)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=8)
+
+        self.resizable(0, 0)
+
+    def on_apply(self):
+        # check for extension validity
+        if not re.fullmatch(r"^\.[\w|\d]+", self.entry_ext.get()):
+            messagebox.showerror(
+                "Extension Error",
+                "Extension can only have alphanumeric values and underscores",
+            )
+            return
+
+        # caveat: Python/Tk sets the dict's repr form, but this can easily
+        # be solved with json's loads and dumps.
+        self.__var.set(
+            json.dumps(
+                dict(
+                    extension=self.entry_ext.get(),
+                    keylen=self.opt_klen.getvar("keylen"),
+                    aesmode=self.opt_aesmode.getvar("aesmode"),
+                    backend=self.opt_backend.getvar("backend"),
+                ),
+            ),
+        )
+        self.destroy()
 
 
 class ControlFrame(ttk.Frame):
@@ -265,23 +441,23 @@ class ControlFrame(ttk.Frame):
         # Configure a menu
         menu = tk.Menu(master)
 
-        filem = tk.Menu(menu, tearoff=False)
-        menu.add_cascade(label="File", menu=filem)
-        filem.add_command(label="Add", command=arcf.on_add)
-        filem.add_command(label="Remove All", command=arcf.on_remove_all)
-        filem.add_separator()
-        filem.add_command(label="Configure...", command=lambda: None)
+        menu_file = tk.Menu(menu, tearoff=False)
+        menu.add_cascade(label="File", menu=menu_file)
+        menu_file.add_command(label="Add", command=arcf.on_add)
+        menu_file.add_command(label="Remove All", command=arcf.on_remove_all)
+        menu_file.add_separator()
+        menu_file.add_command(label="Configure...", command=encf.on_configure)
 
-        aboutm = tk.Menu(menu, tearoff=False)
-        menu.add_cascade(label="About", menu=aboutm)
-        aboutm.add_command(
+        menu_about = tk.Menu(menu, tearoff=False)
+        menu.add_cascade(label="About", menu=menu_about)
+        menu_about.add_command(
             label="About the App...",
             command=lambda: webbrowser.open(ABOUT_APP),
         )
-        aboutm.add_command(
+        menu_about.add_command(
             label="About Me...", command=lambda: webbrowser.open(ABOUT_ME)
         )
-        aboutm.add_command(
+        menu_about.add_command(
             label="About AES...", command=lambda: webbrowser.open(AES_WIKI)
         )
 
@@ -290,6 +466,7 @@ class ControlFrame(ttk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.title("Pycryptor")
     cf = ControlFrame(master=root)
     cf.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
     root.mainloop()
