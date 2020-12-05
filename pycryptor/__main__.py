@@ -14,8 +14,19 @@ ABOUT_APP = (
 )
 ABOUT_ME = "https://github.com/arunanshub"
 SETTINGS_HELP = """\
-General Help:
-# TODO
+Extension: The extension to use for encrypting files.
+Default is ".pyflk"
+
+Key Length: The length of the key derived for AES cipher.
+The greater the length, the stronger the encryption.
+Default is 32 (the highest).
+
+AES mode: The mode to use for underlying AES cipher.
+The modes which do not support AEAD use HMAC.
+Default is "MODE_GCM".
+
+Backend: The backend provider to use for encryption and decryption.
+Default is "Cryptography".
 """
 
 
@@ -149,6 +160,159 @@ class ARCFrame(ttk.Frame):
     on_remove_all = on_clear
 
 
+class SettingsPanel(tk.Toplevel):
+    def __init__(
+        self,
+        *args,
+        var,
+        extension,
+        aesmode,
+        keylen,
+        backend,
+        master,
+        **kwargs,
+    ):
+        super().__init__(*args, master=master, **kwargs)
+        self.title("Settings")
+        self.__var = var
+        # 0. Use grid.
+        # 1. Extension: ttk.Entry
+        # 2. Key Length: ttk.OptionMenu
+        # 3. AES Mode: ttk.OptionMeneu
+        # 4. Backend: ttk.OptonMenu
+        # n. Theme: ...
+        # 5. Help, Apply, Cancel: ttk.Frame[ttk.Button]
+        # The settings must be returned to the application.
+        frame = ttk.LabelFrame(self, text="Settings ")
+        frame.grid(row=0, column=0, sticky="new")
+
+        # 1. Extension: ttk.Entry
+        ttk.Label(frame, text="Extension: ").grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=(0, 5),
+        )
+        self.entry_ext = ttk.Entry(frame)
+        self.entry_ext.insert(0, extension)
+        self.entry_ext.grid(row=0, column=1, sticky="ew", padx=5, pady=(0, 5))
+
+        # 2. Key length: ttk.OptionMenu
+        ttk.Label(frame, text="Key Length: ").grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=5,
+        )
+
+        var_keylen = tk.IntVar(frame, name="keylen")
+        self.opt_klen = ttk.OptionMenu(
+            frame,
+            var_keylen,
+            keylen,
+            *KEY_LENGTHS,
+        )
+        self.opt_klen.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
+
+        # 3. AES Mode: ttk.OptionMenu
+        ttk.Label(frame, text="AES Mode: ").grid(
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=5,
+        )
+
+        var_aesmode = tk.StringVar(frame, name="aesmode")
+        self.opt_aesmode = ttk.OptionMenu(
+            frame,
+            var_aesmode,
+            aesmode,
+            *AES_MODES,
+        )
+        self.opt_aesmode.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
+
+        # 4. Backend: ttk.OptionMenu
+        ttk.Label(frame, text="Backend: ").grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=5,
+        )
+
+        var_backend = tk.StringVar(frame, name="backend")
+        self.opt_backend = ttk.OptionMenu(
+            frame,
+            var_backend,
+            backend,
+            *(b.name.title() for b in list(Backends)),
+        )
+        self.opt_backend.grid(row=3, column=1, sticky="ew", padx=5, pady=5)
+
+        # 5. Help, Apply, Cancel
+        hacframe = ttk.Frame(self)
+        hacframe.grid(row=1, column=0, sticky="sew", pady=5)
+
+        bhelp = ttk.Button(
+            hacframe,
+            text="Help",
+            command=lambda: messagebox.showinfo(
+                "Help on Settings",
+                "Configuring Pycryptor",
+                detail=SETTINGS_HELP,
+            ),
+        )
+        bapply = ttk.Button(hacframe, text="Apply", command=self.on_apply)
+        bcancel = ttk.Button(hacframe, text="Cancel", command=self.destroy)
+
+        bhelp.grid(row=0, column=0, sticky="w")
+        bapply.grid(row=0, column=1, sticky="ns")
+        bcancel.grid(row=0, column=2, sticky="e")
+
+        hacframe.rowconfigure(0, weight=1)
+        for i in range(3):
+            hacframe.columnconfigure(i, weight=1)
+
+        # Allow expansion
+        self.config(padx=10, pady=5)
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        for i in range(4):
+            frame.rowconfigure(i, weight=1)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=8)
+
+        self.resizable(0, 0)
+
+    def on_apply(self):
+        # check for extension validity
+        if not re.fullmatch(r"^\.[\w|\d]+", self.entry_ext.get()):
+            messagebox.showerror(
+                "Extension Error",
+                "Extension can only have alphanumeric values and underscores.",
+            )
+            return
+
+        # caveat: Python/Tk sets the dict's repr form, but this can easily
+        # be solved with json's loads and dumps.
+        self.__var.set(
+            json.dumps(
+                dict(
+                    extension=self.entry_ext.get(),
+                    keylen=self.opt_klen.getvar("keylen"),
+                    aesmode=self.opt_aesmode.getvar("aesmode"),
+                    backend=self.opt_backend.getvar("backend"),
+                ),
+            ),
+        )
+        self.destroy()
+
+
 class EncDecFrame(ttk.Frame):
     """Encrypt / Decrypt buttons w/ a password entry.
         * Controls ListBox
@@ -238,10 +402,10 @@ class EncDecFrame(ttk.Frame):
             backend=self._backend.name.title(),
             aesmode=self._aesmode.name,
         )
+        top.transient(self.master)
         top.focus_set()
         top.wait_visibility()
         top.grab_set()
-        top.transient(self.master)
         self.master.wait_window(top)
 
         if not var.get():  # cancelled operation, nothing to set.
@@ -252,141 +416,6 @@ class EncDecFrame(ttk.Frame):
         self._backend = getattr(Backends, config["backend"].upper())
         self._extension = config["extension"]
         self._aesmode = getattr(modes.Modes, config["aesmode"].upper())
-
-
-class SettingsPanel(tk.Toplevel):
-    def __init__(
-        self,
-        *args,
-        var,
-        extension,
-        aesmode,
-        keylen,
-        backend,
-        master,
-        **kwargs,
-    ):
-        super().__init__(*args, master=master, **kwargs)
-        self.__var = var
-        # 0. Use grid.
-        # 1. Extension: ttk.Entry
-        # 2. Key Length: ttk.OptionMenu
-        # 3. AES Mode: ttk.OptionMeneu
-        # 4. Backend: ttk.OptonMenu
-        # n. Theme: ...
-        # 5. Help, Apply, Cancel: ttk.Frame[ttk.Button]
-        # The settings must be returned to the application.
-        frame = ttk.Frame(self)
-        frame.grid(row=0, column=0, sticky="ew")
-
-        # 1. Extension: ttk.Entry
-        ttk.Label(frame, text="Extension:").grid(
-            row=0,
-            column=0,
-            sticky="ew",
-        )
-        self.entry_ext = ttk.Entry(frame)
-        self.entry_ext.insert(0, extension)
-        self.entry_ext.grid(row=0, column=1, sticky="ew")
-
-        # 2. Key Strength: ttk.OptionMenu
-        ttk.Label(frame, text="Key Length:").grid(
-            row=1,
-            column=0,
-            sticky="ew",
-        )
-
-        var_keylen = tk.IntVar(frame, name="keylen")
-        self.opt_klen = ttk.OptionMenu(
-            frame,
-            var_keylen,
-            keylen,
-            *KEY_LENGTHS,
-        )
-        self.opt_klen.grid(row=1, column=1, sticky="ew")
-
-        # 3. AES Mode: ttk.OptionMenu
-        ttk.Label(frame, text="AES Mode:").grid(
-            row=2,
-            column=0,
-            sticky="ew",
-        )
-
-        var_aesmode = tk.StringVar(frame, name="aesmode")
-        self.opt_aesmode = ttk.OptionMenu(
-            frame,
-            var_aesmode,
-            aesmode,
-            *AES_MODES,
-        )
-        self.opt_aesmode.grid(row=2, column=1, sticky="ew")
-
-        # 4. Backend: ttk.OptionMenu
-        ttk.Label(frame, text="Backend:").grid(
-            row=3,
-            column=0,
-            sticky="ew",
-        )
-
-        var_backend = tk.StringVar(frame, name="backend")
-        self.opt_backend = ttk.OptionMenu(
-            frame,
-            var_backend,
-            backend,
-            *(b.name.title() for b in list(Backends)),
-        )
-        self.opt_backend.grid(row=3, column=1, sticky="ew")
-
-        # 5. Help, Apply, Cancel
-        hacframe = ttk.Frame(frame)
-        hacframe.grid(row=4, column=0, columnspan=3, sticky="ew")
-
-        bhelp = ttk.Button(hacframe, text="Help")
-        bapply = ttk.Button(hacframe, text="Apply", command=self.on_apply)
-        bcancel = ttk.Button(hacframe, text="Cancel", command=self.destroy)
-
-        bhelp.grid(row=0, column=0, sticky="w")
-        bapply.grid(row=0, column=1, sticky="ns")
-        bcancel.grid(row=0, column=2, sticky="e")
-
-        hacframe.rowconfigure(0, weight=1)
-        for i in range(3):
-            hacframe.columnconfigure(i, weight=1)
-
-        # Allow expansion
-        self.config(padx=10, pady=10)
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-
-        for i in range(5):
-            frame.rowconfigure(i, weight=1)
-        frame.columnconfigure(0, weight=1)
-        frame.columnconfigure(1, weight=8)
-
-        self.resizable(0, 0)
-
-    def on_apply(self):
-        # check for extension validity
-        if not re.fullmatch(r"^\.[\w|\d]+", self.entry_ext.get()):
-            messagebox.showerror(
-                "Extension Error",
-                "Extension can only have alphanumeric values and underscores",
-            )
-            return
-
-        # caveat: Python/Tk sets the dict's repr form, but this can easily
-        # be solved with json's loads and dumps.
-        self.__var.set(
-            json.dumps(
-                dict(
-                    extension=self.entry_ext.get(),
-                    keylen=self.opt_klen.getvar("keylen"),
-                    aesmode=self.opt_aesmode.getvar("aesmode"),
-                    backend=self.opt_backend.getvar("backend"),
-                ),
-            ),
-        )
-        self.destroy()
 
 
 class ControlFrame(ttk.Frame):
@@ -413,7 +442,7 @@ class ControlFrame(ttk.Frame):
             row=0,
             column=0,
             ipadx=250,
-            ipady=250,
+            ipady=200,
             sticky="nsew",  # expand in all directions
         )
 
