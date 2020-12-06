@@ -263,6 +263,7 @@ class SettingsPanel(tk.Toplevel):
                 "Help on Settings",
                 "Configuring Pycryptor",
                 detail=SETTINGS_HELP,
+                parent=self,
             ),
         )
         bapply = ttk.Button(hacframe, text="Apply", command=self.on_apply)
