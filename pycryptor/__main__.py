@@ -2,17 +2,29 @@ import re
 import json
 import tkinter as tk
 import webbrowser
+
+from collections import deque, defaultdict
 from tkinter import ttk, filedialog, messagebox
+from threading import Thread
 from pyflocker import Backends
 from pyflocker.ciphers import modes
 
+from . import parallel
+
 KEY_LENGTHS = (16, 24, 32)
+
+WAIT_TIME = 200
+
 AES_MODES = tuple(m.name for m in set(modes.Modes) ^ modes.special)
+
 AES_WIKI = "https://en.wikipedia.org/wiki/Advanced_Encryption_Standard"
+
 ABOUT_APP = (
     "https://github.com/arunanshub/pycryptor#pycryptor---the-file-vault"
 )
+
 ABOUT_ME = "https://github.com/arunanshub"
+
 SETTINGS_HELP = """\
 Extension: The extension to use for encrypting files.
 Default is ".pyflk"
@@ -28,6 +40,23 @@ Default is "MODE_GCM".
 Backend: The backend provider to use for encryption and decryption.
 Default is "Cryptography".
 """
+
+WAITBOX_MESSAGE = """\
+Please wait while the files are being {operation}ed.
+Closing the application while the files are being {operation}ed
+might lead to incorrect {operation}ion or data loss.
+"""
+
+RESULT_TEMPLATE = """\
+{operation}ion results:
+
+    Files {operation}ed: {success},
+    Files failed: {failure},
+    Files not found: {file_not_found},
+    Invalid files: {invalid}.
+"""
+
+_SENTINEL = object()
 
 
 class ListBox(tk.Listbox):
@@ -54,8 +83,7 @@ class ListBox(tk.Listbox):
 
         # configure the listbox
         self.configure(
-            xscrollcommand=xscrollbar.set,
-            yscrollcommand=yscrollbar.set,
+            xscrollcommand=xscrollbar.set, yscrollcommand=yscrollbar.set,
         )
 
         # set the scrollbar commands
@@ -117,21 +145,11 @@ class ARCFrame(ttk.Frame):
         super().__init__(*args, master=master, **kwargs)
         self._listbox = listbox  # assume packed: EIBTI
 
-        self._badd = ttk.Button(
-            self,
-            text="Add",
-            command=self.on_add,
-        )
+        self._badd = ttk.Button(self, text="Add", command=self.on_add,)
         self._bremove = ttk.Button(
-            self,
-            text="Remove",
-            command=self.on_remove,
+            self, text="Remove", command=self.on_remove,
         )
-        self._bclear = ttk.Button(
-            self,
-            text="Clear",
-            command=self.on_clear,
-        )
+        self._bclear = ttk.Button(self, text="Clear", command=self.on_clear,)
 
         self._badd.grid(row=0, column=0, sticky="nsew")
         self._bremove.grid(row=0, column=1, sticky="nsew", padx=10)
@@ -161,6 +179,8 @@ class ARCFrame(ttk.Frame):
 
 
 class SettingsPanel(tk.Toplevel):
+    """Settings panel for user-side configuration."""
+
     def __init__(
         self,
         *args,
@@ -188,11 +208,7 @@ class SettingsPanel(tk.Toplevel):
 
         # 1. Extension: ttk.Entry
         ttk.Label(frame, text="Extension: ").grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=10,
-            pady=(0, 5),
+            row=0, column=0, sticky="ew", padx=10, pady=(0, 5),
         )
         self.entry_ext = ttk.Entry(frame)
         self.entry_ext.insert(0, extension)
@@ -200,47 +216,29 @@ class SettingsPanel(tk.Toplevel):
 
         # 2. Key length: ttk.OptionMenu
         ttk.Label(frame, text="Key Length: ").grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            padx=10,
-            pady=5,
+            row=1, column=0, sticky="ew", padx=10, pady=5,
         )
 
         var_keylen = tk.IntVar(frame, name="keylen")
         self.opt_klen = ttk.OptionMenu(
-            frame,
-            var_keylen,
-            keylen,
-            *KEY_LENGTHS,
+            frame, var_keylen, keylen, *KEY_LENGTHS,
         )
         self.opt_klen.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
 
         # 3. AES Mode: ttk.OptionMenu
         ttk.Label(frame, text="AES Mode: ").grid(
-            row=2,
-            column=0,
-            sticky="ew",
-            padx=10,
-            pady=5,
+            row=2, column=0, sticky="ew", padx=10, pady=5,
         )
 
         var_aesmode = tk.StringVar(frame, name="aesmode")
         self.opt_aesmode = ttk.OptionMenu(
-            frame,
-            var_aesmode,
-            aesmode,
-            *AES_MODES,
+            frame, var_aesmode, aesmode, *AES_MODES,
         )
         self.opt_aesmode.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
 
         # 4. Backend: ttk.OptionMenu
         ttk.Label(frame, text="Backend: ").grid(
-            row=3,
-            column=0,
-            sticky="ew",
-            padx=10,
-            pady=5,
+            row=3, column=0, sticky="ew", padx=10, pady=5,
         )
 
         var_backend = tk.StringVar(frame, name="backend")
@@ -314,6 +312,45 @@ class SettingsPanel(tk.Toplevel):
         self.destroy()
 
 
+class Waitbox(tk.Toplevel):
+    """Custom 'Please Wait' box to show during long running task."""
+
+    def __init__(
+        self, *args, master, operation, current=0, maximum=None, **kwargs
+    ):
+        super().__init__(*args, master=master, **kwargs)
+        self._maximum = maximum
+        self._current = current
+        # 1. Waitbox message
+        # 2. Progressbar
+        # and some way to update the progressbar
+
+        frame = ttk.Frame(self)
+        frame.grid(row=0, column=0, sticky="ew")
+
+        ttk.Label(
+            frame, text=WAITBOX_MESSAGE.format(operation=operation),
+        ).grid(row=0, column=0, sticky="new", padx=(0, 10))
+
+        self._prg = ttk.Progressbar(frame, maximum=maximum, value=current)
+        self._prg.grid(row=1, column=0, sticky="sew")
+
+        # for the child widgets
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
+
+        # overall window
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.config(padx=10, pady=10)
+
+    def step(self, n=1):
+        if self._current < (self._maximum or 100) - 1:
+            self._prg.step(n)
+            self._current += n
+
+
 class EncDecFrame(ttk.Frame):
     """Encrypt / Decrypt buttons w/ a password entry.
         * Controls ListBox
@@ -327,14 +364,10 @@ class EncDecFrame(ttk.Frame):
         self._listbox = listbox  # assume packed: EIBTI
 
         self._bencrypt = ttk.Button(
-            self,
-            text="Encrypt",
-            command=self.on_encrypt,
+            self, text="Encrypt", command=self.on_encrypt,
         )
         self._bdecrypt = ttk.Button(
-            self,
-            text="Decrypt",
-            command=self.on_decrypt,
+            self, text="Decrypt", command=self.on_decrypt,
         )
 
         # Row 0: [Frame: [Label: Password-entry]]
@@ -342,35 +375,22 @@ class EncDecFrame(ttk.Frame):
         self._entry_pwd = ttk.Entry(pwd_frame, show="\u2022")
 
         ttk.Label(pwd_frame, text="Password:").grid(
-            row=0,
-            column=0,
-            sticky="w",
-            padx=(0, 20),
+            row=0, column=0, sticky="w", padx=(0, 20),
         )
         self._entry_pwd.grid(
-            row=0,
-            column=1,
-            sticky="ew",
+            row=0, column=1, sticky="ew",
         )
         pwd_frame.grid(
-            row=0,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            pady=(0, 20),
+            row=0, column=0, columnspan=2, sticky="ew", pady=(0, 20),
         )
         pwd_frame.columnconfigure(1, weight=1)  # let the ttk.Entry expand
 
         # Row 1: [Encrypt, Decrypt]
         self._bencrypt.grid(
-            row=1,
-            column=0,
-            sticky="nsew",
+            row=1, column=0, sticky="nsew",
         )
         self._bdecrypt.grid(
-            row=1,
-            column=1,
-            sticky="nsew",
+            row=1, column=1, sticky="nsew",
         )
 
         self.rowconfigure(1, weight=1)  # expand the ARC buttons row-wise
@@ -385,13 +405,15 @@ class EncDecFrame(ttk.Frame):
 
     def on_encrypt(self):
         """Encrypt everything in the listbox."""
-        print("encrypting")
-        print(repr(self._listbox.items), self._entry_pwd.get())
+        if not self._prepare("encrypt"):
+            return
+        self._submit_task("encrypt", True)
 
     def on_decrypt(self):
         """Decrypt everything in the listbox."""
-        print("decrypting")
-        print(repr(self._listbox.items), self._entry_pwd.get())
+        if not self._prepare("decrypt"):
+            return
+        self._submit_task("decrypt", False)
 
     def on_configure(self):
         var = tk.StringVar(self, name="config")
@@ -417,6 +439,141 @@ class EncDecFrame(ttk.Frame):
         self._backend = getattr(Backends, config["backend"].upper())
         self._extension = config["extension"]
         self._aesmode = getattr(modes.Modes, config["aesmode"].upper())
+
+    def _build_waitbox(self, operation):
+        """Create the waitbox that will be shown while the operation is in
+        progress."""
+        waitbox = Waitbox(
+            master=self.master,
+            operation=operation,
+            maximum=len(self._listbox.items),
+        )
+        waitbox.transient(self.master)
+        waitbox.focus_set()
+        waitbox.wait_visibility()
+        waitbox.grab_set()
+        return waitbox
+
+    def _submit_task(self, operation, locking):
+        """Starts the producer/consumer loop, while showing the waitbox.
+
+        The producer is launched in a separate thread.
+        The consumer loop updates any value pushed to the internal queue.
+        """
+        # submit task to producer and let the consumer do its work
+        q = deque()
+        args = (locking, q)
+        waitbox = self._build_waitbox(operation)
+        Thread(target=self._producer, args=args).start()
+        self._consumer(q, waitbox, operation)
+        self.master.wait_window(waitbox)
+
+    def _producer(self, locking, q):
+        """Produces the filenames and their status and pushes it to the queue.
+
+        This function runs in a separate thread, launched from `_submit_task`
+        method. At the end of the operation, a snetinel value is sent to
+        indicate the consumer loop that the task is done.
+        """
+        for fname, fstat in parallel.files_locker(
+            *self._listbox.items,
+            password=self._entry_pwd.get().encode(),
+            locking=locking,
+            ext=self._extension,
+            backend=self._backend,
+        ):
+            q.appendleft((fname, fstat))
+        q.appendleft((_SENTINEL, _SENTINEL))
+
+    def _consumer(self, q, waitbox, operation, _statdict=None):
+        """Start the consumer loop.
+
+        This function is called by `_submit_task` and runs in the *main thread*.
+        After completion (upon recieving a sentinel value), the waitbox is
+        destroyed and cleanup is performed.
+        """
+        if _statdict is None:
+            _statdict = defaultdict(int)
+        try:
+            while True:
+                fname, fstat = q.pop()
+                if fname is _SENTINEL:
+                    # stop the task
+                    waitbox.destroy()
+                    self._cleanup(_statdict, operation)
+                    break
+                # keep updating
+                waitbox.step()
+                self._update(fname, fstat, _statdict)
+        except IndexError:
+            self.after(
+                WAIT_TIME, self._consumer, q, waitbox, operation, _statdict,
+            )
+
+    def _update(self, fname, fstat, statdict):
+        """Update the colors of listbox, count the files operated upon and
+        don't let the master hang.
+        """
+        self._update_listbox_color(fname, fstat)
+        statdict[fstat] += 1
+        self.master.update()
+
+    def _update_listbox_color(self, fname, fstat):
+        """Updates the colors of listbox to show the operations performed
+        visually.
+        """
+        # TODO: The colors can be set by the user as a part of the application
+        # theme.
+        idx = self._listbox.items.index(fname)
+        if fstat == parallel.SUCCESS:
+            self._listbox.itemconfig(idx, dict(bg="green"))
+        elif fstat == parallel.FAILURE:
+            self._listbox.itemconfig(idx, dict(bg="red"))
+        elif fstat == parallel.INVALID:
+            self._listbox.itemconfig(idx, dict(bg="purple", fg="yellow"))
+        elif fstat == parallel.FILE_NOT_FOUND:
+            self._listbox.itemconfig(idx, dict(bg="yellow", fg="black"))
+
+    def _cleanup(self, statdict, operation):
+        """Perform post-operation tasks."""
+        self.master.update()
+        self._show_result(statdict, operation)
+
+    def _show_result(self, statdict, operation):
+        """Show the stats as a messagebox."""
+        messagebox.showinfo(
+            f"{operation.title()}ion results",
+            f"The files have been {operation}ed",
+            detail=RESULT_TEMPLATE.format(
+                operation=operation.title(),
+                success=statdict[parallel.SUCCESS],
+                failure=statdict[parallel.FAILURE],
+                file_not_found=statdict[parallel.FILE_NOT_FOUND],
+                invalid=statdict[parallel.INVALID],
+            ),
+        )
+
+    def _prepare(self, operation):
+        """Perform pre-operation checks before starting the producer-consumer
+        loop.
+        """
+        if not self._listbox.items:
+            messagebox.showerror(
+                "Error", f"No files selected for {operation}ion."
+            )
+            return
+        elif not len(self._entry_pwd.get()):
+            messagebox.showerror(
+                "Error", f"No password entered for {operation}ion."
+            )
+            return
+        elif len(self._entry_pwd.get()) < 8:
+            messagebox.showerror(
+                "Error", "Password must be greater than 8 bytes."
+            )
+            return
+        else:
+            return True
 
 
 class ControlFrame(ttk.Frame):
@@ -498,5 +655,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Pycryptor")
     cf = ControlFrame(master=root)
-    cf.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
+    cf.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+    root.rowconfigure(0, weight=1)
+    root.columnconfigure(0, weight=1)
     root.mainloop()

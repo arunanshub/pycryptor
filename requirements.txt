@@ -1,7 +1,1 @@
-asn1crypto
-cffi
-cryptography
-pycparser
-pycryptodomex
-pycryptodome>=3.0.0
-six
+PyFLocker>=0.2.6
