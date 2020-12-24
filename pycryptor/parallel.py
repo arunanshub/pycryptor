@@ -11,7 +11,7 @@ INVALID = 1 << 3
 FILE_NOT_FOUND = 1 << 4
 
 
-def chunkify(iterable, n, fillvalue=None):
+def chunkify(iterable, n):
     """Collect data into fixed-length chunks or blocks.
 
     Code adapted from more-itertools.
@@ -51,23 +51,17 @@ def files_locker(
         **kwargs,
     )
 
-    try:
-        pool = futures.ProcessPoolExecutor(max_workers // 2)
-    except ImportError:  # android does not support multiprocessing module
-        pool = futures.ThreadPoolExecutor(max_workers)
+    # FIXME: A bug is causing the generator to hang if ProcessPoolExecutor
+    # is used. Thread pools works fine.
+    pool = futures.ThreadPoolExecutor(max_workers)
 
     results = []
     # TODO: Consider this: pool.map(func, files, chunksize=chunksize)
     with pool:
-        for c in chunkify(set(files), chunksize):
-            results.append(
-                pool.map(
-                    partial(_mapper, ext=ext, locking=locking, f=_locker,), c,
-                ),
-            )
-
-        for r in results:
-            yield from r
+        f = partial(_mapper, ext=ext, locking=locking, f=_locker)
+        for chunk in chunkify(files, chunksize):
+            temp_res = [pool.submit(f, path=path) for path in chunk]
+            yield from (f.result() for f in futures.as_completed(temp_res))
 
 
 def _mapper(path, ext, locking, f):
