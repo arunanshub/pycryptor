@@ -22,6 +22,7 @@ A small checklist in case I forget my tasks!
 - [x] Improve the large/multiple file locking speed, and prevent it from hanging.
 - [x] Add some documentation to the app source code.
 - [x] Simplify the code base.
+- [x] Add minimal and configurable logging in app.
 - [ ] Add functionality to work with directories.
 - [ ] Add user-made themes capability (as JSON files).
 - [x] Deprecate the locker in favour of better API.
