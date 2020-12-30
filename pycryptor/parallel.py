@@ -70,7 +70,7 @@ def files_locker(
             temp_res = [pool.submit(f, path=path) for path in chunk]
             yield from (f.result() for f in futures.as_completed(temp_res))
 
-    logger.debug("Finished pool context. Exiting...")
+    logger.debug("Finished pool context.")
 
 
 def _mapper(path, ext, locking, f):

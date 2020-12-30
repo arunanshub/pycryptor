@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import re
 import json
 import argparse
@@ -13,6 +14,7 @@ from pyflocker.ciphers import modes
 
 from . import parallel, start_logging
 
+logger = logging.getLogger(__loader__.name)
 
 KEY_LENGTHS = (16, 24, 32)
 
@@ -59,9 +61,20 @@ RESULT_TEMPLATE = """\
     Invalid files: {invalid}.
 """
 
-_SENTINEL = object()
+APP_DESC = """\
+Pycryptor is a high performance file encryption GUI written in Python.
+It uses AES for file encryption and decryption and supports multiple
+AES modes, along with other parameters, which can be configured from
+within the app.
 
-logger = logging.getLogger(__loader__.name)
+Visit https://github.com/arunanshub/pycryptor to know more.
+"""
+
+CLI_APP_EPILOG = """\
+Pycryptor is licensed under MIT license.
+"""
+
+_SENTINEL = object()
 
 
 class ListBox(tk.Listbox):
@@ -84,7 +97,8 @@ class ListBox(tk.Listbox):
 
         logger.warning(
             "Using packer to set scrollbars. This will be replaced with grid "
-            "in the near future. "
+            "in the near future. Side effects of packer may include flashing "
+            "windows. "
         )
         # pack them on the listbox
         xscrollbar.pack(side="bottom", fill="x")
@@ -733,7 +747,12 @@ class ControlFrame(ttk.Frame):
         menu.add_cascade(label="About", menu=menu_about)
         menu_about.add_command(
             label="About the App...",
-            command=lambda: webbrowser.open(ABOUT_APP),
+            command=lambda: messagebox.showinfo(
+                "About",
+                "Pycryptor",
+                detail=APP_DESC,
+                parent=self,
+            ),
         )
         menu_about.add_command(
             label="About Me...", command=lambda: webbrowser.open(ABOUT_ME)
@@ -753,7 +772,12 @@ def start_logging_with_flags():
         5: logging.DEBUG,
     }
 
-    ps = argparse.ArgumentParser()
+    ps = argparse.ArgumentParser(
+        # only the package name is needed for `prog`
+        prog=__loader__.name.split(".", 1)[0],
+        description=APP_DESC,
+        epilog=CLI_APP_EPILOG,
+    )
     group = ps.add_mutually_exclusive_group()
     group.add_argument(
         "-v",
