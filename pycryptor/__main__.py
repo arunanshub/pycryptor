@@ -833,4 +833,4 @@ if __name__ == "__main__":
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
     root.mainloop()
-    logger.debug("Application destroyed without any errors.")
+    logger.debug("The application has been destroyed.")
