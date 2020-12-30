@@ -70,6 +70,9 @@ AES modes, along with other parameters, which can be configured from
 within the app.
 
 Visit https://github.com/arunanshub/pycryptor to know more.
+
+The encryption and decryption functionality is provided by PyFLocker.
+Visit https://github.com/arunanshub/pyflocker to know more.
 """
 
 CLI_APP_EPILOG = """\
