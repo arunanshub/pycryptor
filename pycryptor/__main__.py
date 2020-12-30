@@ -58,7 +58,8 @@ RESULT_TEMPLATE = """\
     Files {operation}ed: {success},
     Files failed: {failure},
     Files not found: {file_not_found},
-    Invalid files: {invalid}
+    File to create after {operation}ion already exists: {file_exists},
+    Invalid files: {invalid},
     Unaccessible: {unaccessible}
 """
 
@@ -534,6 +535,9 @@ class EncDecFrame(ttk.Frame):
             operation=operation,
             maximum=len(self._listbox.items),
         )
+
+        # the waitbox must not be destroyed while the operation is in progress
+        waitbox.protocol("WM_DELETE_WINDOW", lambda: None)
         waitbox.transient(self.master)
         waitbox.focus_set()
         waitbox.wait_visibility()
@@ -638,6 +642,8 @@ class EncDecFrame(ttk.Frame):
             self._listbox.itemconfig(idx, dict(bg="purple", fg="yellow"))
         elif fstat == parallel.FILE_NOT_FOUND:
             self._listbox.itemconfig(idx, dict(bg="yellow", fg="black"))
+        elif fstat == parallel.FILE_EXISTS:
+            self._listbox.itemconfig(idx, dict(bg="gray", fg="yellow"))
         elif fstat == parallel.PERMISSION_ERROR:
             self._listbox.itemconfig(idx, dict(bg="magenta", fg="black"))
 
@@ -659,6 +665,7 @@ class EncDecFrame(ttk.Frame):
                 file_not_found=statdict[parallel.FILE_NOT_FOUND],
                 invalid=statdict[parallel.INVALID],
                 unaccessible=statdict[parallel.PERMISSION_ERROR],
+                file_exists=statdict[parallel.FILE_EXISTS],
             ),
         )
 
