@@ -1,5 +1,6 @@
 import os
 import itertools
+import logging
 from concurrent import futures
 from functools import partial
 from pyflocker.locker import locker
@@ -9,6 +10,8 @@ SUCCESS = 1 << 1
 FAILURE = 1 << 2
 INVALID = 1 << 3
 FILE_NOT_FOUND = 1 << 4
+
+logger = logging.getLogger(__name__)
 
 
 def chunkify(iterable, n):
@@ -54,14 +57,20 @@ def files_locker(
     # FIXME: A bug is causing the generator to hang if ProcessPoolExecutor
     # is used. Thread pools works fine.
     pool = futures.ThreadPoolExecutor(max_workers)
+    logger.debug("Built a threadpool object %s", pool)
 
     results = []
     # TODO: Consider this: pool.map(func, files, chunksize=chunksize)
     with pool:
+        logger.debug(f"Entered pool context successfully with {locking=}")
+
         f = partial(_mapper, ext=ext, locking=locking, f=_locker)
+
         for chunk in chunkify(files, chunksize):
             temp_res = [pool.submit(f, path=path) for path in chunk]
             yield from (f.result() for f in futures.as_completed(temp_res))
+
+    logger.debug("Finished pool context. Exiting...")
 
 
 def _mapper(path, ext, locking, f):

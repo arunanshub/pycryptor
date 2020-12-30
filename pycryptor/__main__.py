@@ -1,15 +1,18 @@
 import re
 import json
+import argparse
 import tkinter as tk
 import webbrowser
+import logging
 
 from collections import deque, defaultdict
 from tkinter import ttk, filedialog, messagebox
-from threading import Thread
+from threading import Thread, current_thread
 from pyflocker import Backends
 from pyflocker.ciphers import modes
 
-from . import parallel
+from . import parallel, start_logging
+
 
 KEY_LENGTHS = (16, 24, 32)
 
@@ -58,6 +61,8 @@ RESULT_TEMPLATE = """\
 
 _SENTINEL = object()
 
+logger = logging.getLogger(__loader__.name)
+
 
 class ListBox(tk.Listbox):
     """The List box.
@@ -77,13 +82,18 @@ class ListBox(tk.Listbox):
         xscrollbar = ttk.Scrollbar(self, orient="horizontal")
         yscrollbar = ttk.Scrollbar(self, orient="vertical")
 
+        logger.warning(
+            "Using packer to set scrollbars. This will be replaced with grid "
+            "in the near future. "
+        )
         # pack them on the listbox
         xscrollbar.pack(side="bottom", fill="x")
         yscrollbar.pack(side="right", fill="y")
 
         # configure the listbox
         self.configure(
-            xscrollcommand=xscrollbar.set, yscrollcommand=yscrollbar.set,
+            xscrollcommand=xscrollbar.set,
+            yscrollcommand=yscrollbar.set,
         )
 
         # set the scrollbar commands
@@ -145,11 +155,21 @@ class ARCFrame(ttk.Frame):
         super().__init__(*args, master=master, **kwargs)
         self._listbox = listbox  # assume packed: EIBTI
 
-        self._badd = ttk.Button(self, text="Add", command=self.on_add,)
-        self._bremove = ttk.Button(
-            self, text="Remove", command=self.on_remove,
+        self._badd = ttk.Button(
+            self,
+            text="Add",
+            command=self.on_add,
         )
-        self._bclear = ttk.Button(self, text="Clear", command=self.on_clear,)
+        self._bremove = ttk.Button(
+            self,
+            text="Remove",
+            command=self.on_remove,
+        )
+        self._bclear = ttk.Button(
+            self,
+            text="Clear",
+            command=self.on_clear,
+        )
 
         self._badd.grid(row=0, column=0, sticky="nsew")
         self._bremove.grid(row=0, column=1, sticky="nsew", padx=10)
@@ -193,6 +213,8 @@ class SettingsPanel(tk.Toplevel):
         **kwargs,
     ):
         super().__init__(*args, master=master, **kwargs)
+        logger.debug(f"Building SettingsPanel with {var=}")
+
         self.title("Settings")
         self.__var = var
         # 0. Use grid.
@@ -208,7 +230,11 @@ class SettingsPanel(tk.Toplevel):
 
         # 1. Extension: ttk.Entry
         ttk.Label(frame, text="Extension: ").grid(
-            row=0, column=0, sticky="ew", padx=10, pady=(0, 5),
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=(0, 5),
         )
         self.entry_ext = ttk.Entry(frame)
         self.entry_ext.insert(0, extension)
@@ -216,29 +242,47 @@ class SettingsPanel(tk.Toplevel):
 
         # 2. Key length: ttk.OptionMenu
         ttk.Label(frame, text="Key Length: ").grid(
-            row=1, column=0, sticky="ew", padx=10, pady=5,
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=5,
         )
 
         var_keylen = tk.IntVar(frame, name="keylen")
         self.opt_klen = ttk.OptionMenu(
-            frame, var_keylen, keylen, *KEY_LENGTHS,
+            frame,
+            var_keylen,
+            keylen,
+            *KEY_LENGTHS,
         )
         self.opt_klen.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
 
         # 3. AES Mode: ttk.OptionMenu
         ttk.Label(frame, text="AES Mode: ").grid(
-            row=2, column=0, sticky="ew", padx=10, pady=5,
+            row=2,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=5,
         )
 
         var_aesmode = tk.StringVar(frame, name="aesmode")
         self.opt_aesmode = ttk.OptionMenu(
-            frame, var_aesmode, aesmode, *AES_MODES,
+            frame,
+            var_aesmode,
+            aesmode,
+            *AES_MODES,
         )
         self.opt_aesmode.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
 
         # 4. Backend: ttk.OptionMenu
         ttk.Label(frame, text="Backend: ").grid(
-            row=3, column=0, sticky="ew", padx=10, pady=5,
+            row=3,
+            column=0,
+            sticky="ew",
+            padx=10,
+            pady=5,
         )
 
         var_backend = tk.StringVar(frame, name="backend")
@@ -299,6 +343,7 @@ class SettingsPanel(tk.Toplevel):
 
         # caveat: Python/Tk sets the dict's repr form, but this can easily
         # be solved with json's loads and dumps.
+        logger.debug("Dumping config values into {self.__var} as json.")
         self.__var.set(
             json.dumps(
                 dict(
@@ -309,6 +354,7 @@ class SettingsPanel(tk.Toplevel):
                 ),
             ),
         )
+        logger.debug(f"Destroying {self=}")
         self.destroy()
 
 
@@ -329,7 +375,8 @@ class Waitbox(tk.Toplevel):
         frame.grid(row=0, column=0, sticky="ew")
 
         ttk.Label(
-            frame, text=WAITBOX_MESSAGE.format(operation=operation),
+            frame,
+            text=WAITBOX_MESSAGE.format(operation=operation),
         ).grid(row=0, column=0, sticky="new", padx=(0, 10))
 
         self._prg = ttk.Progressbar(frame, maximum=maximum, value=current)
@@ -364,10 +411,14 @@ class EncDecFrame(ttk.Frame):
         self._listbox = listbox  # assume packed: EIBTI
 
         self._bencrypt = ttk.Button(
-            self, text="Encrypt", command=self.on_encrypt,
+            self,
+            text="Encrypt",
+            command=self.on_encrypt,
         )
         self._bdecrypt = ttk.Button(
-            self, text="Decrypt", command=self.on_decrypt,
+            self,
+            text="Decrypt",
+            command=self.on_decrypt,
         )
 
         # Row 0: [Frame: [Label: Password-entry]]
@@ -375,22 +426,35 @@ class EncDecFrame(ttk.Frame):
         self._entry_pwd = ttk.Entry(pwd_frame, show="\u2022")
 
         ttk.Label(pwd_frame, text="Password:").grid(
-            row=0, column=0, sticky="w", padx=(0, 20),
+            row=0,
+            column=0,
+            sticky="w",
+            padx=(0, 20),
         )
         self._entry_pwd.grid(
-            row=0, column=1, sticky="ew",
+            row=0,
+            column=1,
+            sticky="ew",
         )
         pwd_frame.grid(
-            row=0, column=0, columnspan=2, sticky="ew", pady=(0, 20),
+            row=0,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(0, 20),
         )
         pwd_frame.columnconfigure(1, weight=1)  # let the ttk.Entry expand
 
         # Row 1: [Encrypt, Decrypt]
         self._bencrypt.grid(
-            row=1, column=0, sticky="nsew",
+            row=1,
+            column=0,
+            sticky="nsew",
         )
         self._bdecrypt.grid(
-            row=1, column=1, sticky="nsew",
+            row=1,
+            column=1,
+            sticky="nsew",
         )
 
         self.rowconfigure(1, weight=1)  # expand the ARC buttons row-wise
@@ -425,6 +489,8 @@ class EncDecFrame(ttk.Frame):
             backend=self._backend.name.title(),
             aesmode=self._aesmode.name,
         )
+        logger.debug(f"Built SettingsPanel with {var=} for fetching values.")
+
         top.transient(self.master)
         top.focus_set()
         top.wait_visibility()
@@ -432,9 +498,12 @@ class EncDecFrame(ttk.Frame):
         self.master.wait_window(top)
 
         if not var.get():  # cancelled operation, nothing to set.
+            logger.debug("Operation was cancelled/exited. Nothing to set.")
             return
 
         config = json.loads(var.get())
+        logger.debug(f"Received configuration {config=}")
+
         self._keylen = config["keylen"]
         self._backend = getattr(Backends, config["backend"].upper())
         self._extension = config["extension"]
@@ -443,6 +512,8 @@ class EncDecFrame(ttk.Frame):
     def _build_waitbox(self, operation):
         """Create the waitbox that will be shown while the operation is in
         progress."""
+        logger.debug(f"Building waitbox for {operation=}")
+
         waitbox = Waitbox(
             master=self.master,
             operation=operation,
@@ -460,6 +531,7 @@ class EncDecFrame(ttk.Frame):
         The producer is launched in a separate thread.
         The consumer loop updates any value pushed to the internal queue.
         """
+        logger.debug("Starting producer-consumer loop...")
         # submit task to producer and let the consumer do its work
         q = deque()
         args = (locking, q)
@@ -475,6 +547,10 @@ class EncDecFrame(ttk.Frame):
         method. At the end of the operation, a snetinel value is sent to
         indicate the consumer loop that the task is done.
         """
+        logger.debug(
+            f"Setting up producer loop on thread={current_thread().name}"
+        )
+
         for fname, fstat in parallel.files_locker(
             *self._listbox.items,
             password=self._entry_pwd.get().encode(),
@@ -485,6 +561,10 @@ class EncDecFrame(ttk.Frame):
             q.appendleft((fname, fstat))
         q.appendleft((_SENTINEL, _SENTINEL))
 
+        logger.debug(
+            f"Added sentinels {_SENTINEL} to queue. Producer loop will exit now."
+        )
+
     def _consumer(self, q, waitbox, operation, _statdict=None):
         """Start the consumer loop.
 
@@ -494,10 +574,15 @@ class EncDecFrame(ttk.Frame):
         """
         if _statdict is None:
             _statdict = defaultdict(int)
+            logger.debug(f"Made {_statdict=}. This will not be remade.")
+
         try:
             while True:
                 fname, fstat = q.pop()
                 if fname is _SENTINEL:
+                    logger.debug(
+                        "Received sentinel. Stopping producer-consumer loop."
+                    )
                     # stop the task
                     waitbox.destroy()
                     self._cleanup(_statdict, operation)
@@ -507,7 +592,12 @@ class EncDecFrame(ttk.Frame):
                 self._update(fname, fstat, _statdict)
         except IndexError:
             self.after(
-                WAIT_TIME, self._consumer, q, waitbox, operation, _statdict,
+                WAIT_TIME,
+                self._consumer,
+                q,
+                waitbox,
+                operation,
+                _statdict,
             )
 
     def _update(self, fname, fstat, statdict):
@@ -536,6 +626,7 @@ class EncDecFrame(ttk.Frame):
 
     def _cleanup(self, statdict, operation):
         """Perform post-operation tasks."""
+        logger.debug("The wait window has been destroyed. Updating master...")
         self.master.update()
         self._show_result(statdict, operation)
 
@@ -573,6 +664,7 @@ class EncDecFrame(ttk.Frame):
             )
             return
         else:
+            logger.debug(f"All pre {operation}ion checks passed.")
             return True
 
 
@@ -593,6 +685,8 @@ class ControlFrame(ttk.Frame):
     def __init__(self, *args, master, **kwargs):
         super().__init__(*args, master=master, **kwargs)
         self._listbox = ListBox(*args, master=self, **kwargs)
+
+        logger.debug(f"Building main application frame {self}")
 
         # pack with an internal padding otherwise the listbox will
         # look like shit.
@@ -651,7 +745,51 @@ class ControlFrame(ttk.Frame):
         master.config(menu=menu)
 
 
+def start_logging_with_flags():
+    """Add logging capability with tunable verbosity."""
+    logging_levels = {
+        3: logging.WARNING,
+        4: logging.INFO,
+        5: logging.DEBUG,
+    }
+
+    ps = argparse.ArgumentParser()
+    group = ps.add_mutually_exclusive_group()
+    group.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=3,
+        help="Increase application verbosity."
+        " This option is repeatable and will increase verbosity each time "
+        "it is repeated."
+        " This option cannot be used when -q/--quiet is used.",
+    )
+
+    group.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Disable logging."
+        " This option cannot be used when -v/--verbose is used.",
+    )
+
+    args = ps.parse_args()
+
+    if args.quiet:
+        return
+
+    level = args.verbose
+    if level >= 5:
+        level = 5
+
+    start_logging(logging_levels[level])
+
+
 if __name__ == "__main__":
+    start_logging_with_flags()  # enable logging
+    logger.debug("Building application with grid manager.")
+
     root = tk.Tk()
     root.title("Pycryptor")
     cf = ControlFrame(master=root)
@@ -659,3 +797,4 @@ if __name__ == "__main__":
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
     root.mainloop()
+    logger.debug("Application destroyed without any errors.")
