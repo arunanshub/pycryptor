@@ -222,7 +222,7 @@ class SettingsPanel(tk.Toplevel):
         *args,
         var,
         extension,
-        aesmode,
+        aes_mode,
         keylen,
         backend,
         master,
@@ -283,14 +283,14 @@ class SettingsPanel(tk.Toplevel):
             pady=5,
         )
 
-        var_aesmode = tk.StringVar(frame, name="aesmode")
-        self.opt_aesmode = ttk.OptionMenu(
+        var_aes_mode = tk.StringVar(frame, name="aes_mode")
+        self.opt_aes_mode = ttk.OptionMenu(
             frame,
-            var_aesmode,
-            aesmode,
+            var_aes_mode,
+            aes_mode,
             *AES_MODES,
         )
-        self.opt_aesmode.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
+        self.opt_aes_mode.grid(row=2, column=1, sticky="ew", padx=5, pady=5)
 
         # 4. Backend: ttk.OptionMenu
         ttk.Label(frame, text="Backend: ").grid(
@@ -365,7 +365,7 @@ class SettingsPanel(tk.Toplevel):
                 dict(
                     extension=self.entry_ext.get(),
                     keylen=self.opt_klen.getvar("keylen"),
-                    aesmode=self.opt_aesmode.getvar("aesmode"),
+                    aes_mode=self.opt_aes_mode.getvar("aes_mode"),
                     backend=self.opt_backend.getvar("backend"),
                 ),
             ),
@@ -481,7 +481,7 @@ class EncDecFrame(ttk.Frame):
         self._keylen = 32
         self._backend = Backends.CRYPTOGRAPHY
         self._extension = ".pyflk"
-        self._aesmode = modes.Modes.MODE_GCM
+        self._aes_mode = modes.Modes.MODE_GCM
 
     def on_encrypt(self):
         """Encrypt everything in the listbox."""
@@ -503,7 +503,7 @@ class EncDecFrame(ttk.Frame):
             keylen=self._keylen,
             extension=self._extension,
             backend=self._backend.name.title(),
-            aesmode=self._aesmode.name,
+            aes_mode=self._aes_mode.name,
         )
         logger.debug(f"Built SettingsPanel with {var=} for fetching values.")
 
@@ -523,7 +523,7 @@ class EncDecFrame(ttk.Frame):
         self._keylen = config["keylen"]
         self._backend = getattr(Backends, config["backend"].upper())
         self._extension = config["extension"]
-        self._aesmode = getattr(modes.Modes, config["aesmode"].upper())
+        self._aes_mode = getattr(modes.Modes, config["aes_mode"].upper())
 
     def _build_waitbox(self, operation):
         """Create the waitbox that will be shown while the operation is in
@@ -576,6 +576,7 @@ class EncDecFrame(ttk.Frame):
             locking=locking,
             ext=self._extension,
             backend=self._backend,
+            aes_mode=self._aes_mode,
         ):
             q.appendleft((fname, fstat))
         q.appendleft((_SENTINEL, _SENTINEL))
