@@ -357,7 +357,7 @@ class SettingsPanel(tk.Toplevel):
 
         # caveat: Python/Tk sets the dict's repr form, but this can easily
         # be solved with json's loads and dumps.
-        logger.debug("Dumping config values into {self.__var} as json.")
+        logger.debug(f"Dumping config values into {self.__var} as json.")
         self.__var.set(
             json.dumps(
                 dict(
