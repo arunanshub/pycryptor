@@ -10,6 +10,7 @@ SUCCESS = 1 << 1
 FAILURE = 1 << 2
 INVALID = 1 << 3
 FILE_NOT_FOUND = 1 << 4
+PERMISSION_ERROR = 1 << 5
 
 logger = logging.getLogger(__name__)
 
@@ -87,3 +88,5 @@ def _mapper(path, ext, locking, f):
     except (TypeError, IsADirectoryError):
         # header error when locking == False and path.endswith(ext)
         return path, INVALID
+    except PermissionError:
+        return path, PERMISSION_ERROR

@@ -58,7 +58,8 @@ RESULT_TEMPLATE = """\
     Files {operation}ed: {success},
     Files failed: {failure},
     Files not found: {file_not_found},
-    Invalid files: {invalid}.
+    Invalid files: {invalid}
+    Unaccessible: {unaccessible}
 """
 
 APP_DESC = """\
@@ -627,7 +628,7 @@ class EncDecFrame(ttk.Frame):
         visually.
         """
         # TODO: The colors can be set by the user as a part of the application
-        # theme.
+        # theme. This design is disgusting and enough to make Gordon Ramsay mad
         idx = self._listbox.items.index(fname)
         if fstat == parallel.SUCCESS:
             self._listbox.itemconfig(idx, dict(bg="green"))
@@ -637,6 +638,8 @@ class EncDecFrame(ttk.Frame):
             self._listbox.itemconfig(idx, dict(bg="purple", fg="yellow"))
         elif fstat == parallel.FILE_NOT_FOUND:
             self._listbox.itemconfig(idx, dict(bg="yellow", fg="black"))
+        elif fstat == parallel.PERMISSION_ERROR:
+            self._listbox.itemconfig(idx, dict(bg="magenta", fg="black"))
 
     def _cleanup(self, statdict, operation):
         """Perform post-operation tasks."""
@@ -655,6 +658,7 @@ class EncDecFrame(ttk.Frame):
                 failure=statdict[parallel.FAILURE],
                 file_not_found=statdict[parallel.FILE_NOT_FOUND],
                 invalid=statdict[parallel.INVALID],
+                unaccessible=statdict[parallel.PERMISSION_ERROR],
             ),
         )
 
