@@ -101,13 +101,15 @@ class ListBox(tk.Listbox):
         yscrollbar = ttk.Scrollbar(self, orient="vertical")
 
         logger.warning(
-            "Using packer to set scrollbars. This will be replaced with grid "
-            "in the near future. Side effects of packer may include flashing "
-            "windows. "
+            "Window flashing may occur. This is resolved if the window is "
+            "slightly resized."
         )
-        # pack them on the listbox
-        xscrollbar.pack(side="bottom", fill="x")
-        yscrollbar.pack(side="right", fill="y")
+
+        # grid them on the listbox and allow expansion
+        yscrollbar.grid(row=0, column=1, sticky="ns")
+        xscrollbar.grid(row=1, column=0, sticky="ew")
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
 
         # configure the listbox
         self.configure(
@@ -119,13 +121,8 @@ class ListBox(tk.Listbox):
         xscrollbar.config(command=self.xview)
         yscrollbar.config(command=self.yview)
 
-        # TODO: Fix the flashing of window caused by the addition
-        # of scrollbars.
-        # The flashing could be cause due to the fact that we are
-        # using pack here and grid in other places, ie., geometry
-        # manager conficts?
-        # Currently, the flashing stops if the window is resized
-        # slightly.
+        # BUG: The listbox uses the grid geometry manager now, but the
+        # flashing continues.
 
     @property
     def items(self):
