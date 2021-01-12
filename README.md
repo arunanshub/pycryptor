@@ -1,3 +1,4 @@
+
 # Pycryptor - The File Vault
 
 Pycryptor is a Python based high performance file encryption software.
@@ -8,6 +9,14 @@ Pycryptor is a Python based high performance file encryption software.
  - Supports multiple cryptographic backends.
  - Very fast encryption and decryption of files.
  - GUI based on lightweight Tk. No additional dependencies required.
+
+## Pycryptor Preview
+
+# Linux
+
+<p align="center">
+  <img src="images/app-linux.png" alt="Pycryptor on Linux" width="50%"/>
+</p>
 
 ## The `locker` modules
 
