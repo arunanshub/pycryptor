@@ -620,8 +620,7 @@ class EncDecFrame(ttk.Frame):
                 self._update(fname, fstat, _statdict)
         except IndexError:
             logger.debug(
-                f"Queue is empty."
-                f" Will check back after {WAIT_TIME}ms"
+                f"Queue is empty. Will check back after {WAIT_TIME}ms"
             )
             self.after(
                 WAIT_TIME,
