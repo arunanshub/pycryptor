@@ -15,7 +15,7 @@ Pycryptor is a Python based high performance file encryption software.
 ### Linux
 
 <p align="center">
-  <img src="images/app-linux.png" alt="Pycryptor on Linux" width="50%"/>
+  <img src="images/app-linux.png" alt="Pycryptor on Linux" width="40%"/>
 </p>
 
 ## The `locker` modules
