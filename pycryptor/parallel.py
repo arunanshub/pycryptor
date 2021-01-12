@@ -36,6 +36,7 @@ def files_locker(
     backend=None,
     max_workers=None,
     chunksize=16,
+    thread_name_prefix="pycryptor",
     **kwargs,
 ):
     """Encrypt or decrypt multiple files concurrently.
@@ -58,10 +59,11 @@ def files_locker(
 
     # FIXME: A bug is causing the generator to hang if ProcessPoolExecutor
     # is used. Thread pools works fine.
-    pool = futures.ThreadPoolExecutor(max_workers)
+    pool = futures.ThreadPoolExecutor(
+        max_workers, thread_name_prefix=thread_name_prefix
+    )
     logger.debug("Built a threadpool object %s", pool)
 
-    results = []
     # TODO: Consider this: pool.map(func, files, chunksize=chunksize)
     with pool:
         logger.debug(f"Entered pool context successfully with {locking=}")
@@ -82,14 +84,18 @@ def _mapper(path, ext, locking, f):
         return path, INVALID
 
     try:
+        logger.debug(f"{path=} is valid. Submitting to function.")
         f(path)
-        return path, SUCCESS
+        stat = SUCCESS
     except exc.DecryptionError:
-        return path, FAILURE
+        stat = FAILURE
     except FileExistsError:
-        return path, FILE_EXISTS
+        stat = FILE_EXISTS
     except (TypeError, IsADirectoryError):
         # header error when locking == False and path.endswith(ext)
-        return path, INVALID
+        stat = INVALID
     except PermissionError:
-        return path, PERMISSION_ERROR
+        stat = PERMISSION_ERROR
+
+    logger.debug(f"{path=} was processed with {stat=}")
+    return path, stat

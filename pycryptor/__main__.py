@@ -93,6 +93,8 @@ class ListBox(tk.Listbox):
 
     def __init__(self, *args, master, **kwargs):
         super().__init__(*args, master=master, **kwargs)
+        logger.info(f"Building custom Listbox {self}")
+
         self.__items = tk.Variable(master, name="__items")
         self.config(listvariable=self.__items)
 
@@ -170,6 +172,7 @@ class ARCFrame(ttk.Frame):
     def __init__(self, *args, master, listbox=None, **kwargs):
         super().__init__(*args, master=master, **kwargs)
         self._listbox = listbox  # assume packed: EIBTI
+        logger.info(f"Building Add-Remove-Clear frame {self}")
 
         self._badd = ttk.Button(
             self,
@@ -229,7 +232,7 @@ class SettingsPanel(tk.Toplevel):
         **kwargs,
     ):
         super().__init__(*args, master=master, **kwargs)
-        logger.debug(f"Building SettingsPanel with {var=}")
+        logger.info(f"Building SettingsPanel with {var=}")
 
         self.title("Settings")
         self.__var = var
@@ -550,7 +553,7 @@ class EncDecFrame(ttk.Frame):
         The producer is launched in a separate thread.
         The consumer loop updates any value pushed to the internal queue.
         """
-        logger.debug("Starting producer-consumer loop...")
+        logger.info("Starting producer-consumer loop...")
         # submit task to producer and let the consumer do its work
         q = deque()
         args = (locking, q)
@@ -600,17 +603,26 @@ class EncDecFrame(ttk.Frame):
             while True:
                 fname, fstat = q.pop()
                 if fname is _SENTINEL:
-                    logger.debug(
+                    logger.info(
                         "Received sentinel. Stopping producer-consumer loop."
                     )
                     # stop the task
                     waitbox.destroy()
                     self._cleanup(_statdict, operation)
                     break
+
+                logger.debug(
+                    "Received value from queue. "
+                    "Updating waitbox and listbox."
+                )
                 # keep updating
                 waitbox.step()
                 self._update(fname, fstat, _statdict)
         except IndexError:
+            logger.debug(
+                f"Queue is empty."
+                f" Will check back after {WAIT_TIME}ms"
+            )
             self.after(
                 WAIT_TIME,
                 self._consumer,
@@ -690,7 +702,7 @@ class EncDecFrame(ttk.Frame):
             )
             return
         else:
-            logger.debug(f"All pre {operation}ion checks passed.")
+            logger.info(f"All pre {operation}ion checks passed.")
             return True
 
 
@@ -712,7 +724,7 @@ class ControlFrame(ttk.Frame):
         super().__init__(*args, master=master, **kwargs)
         self._listbox = ListBox(*args, master=self, **kwargs)
 
-        logger.debug(f"Building main application frame {self}")
+        logger.info(f"Building main application frame {self}")
 
         # pack with an internal padding otherwise the listbox will
         # look like shit.
@@ -824,7 +836,7 @@ def start_logging_with_flags():
 
 if __name__ == "__main__":
     start_logging_with_flags()  # enable logging
-    logger.debug("Building application with grid manager.")
+    logger.info("Building application with grid manager.")
 
     root = tk.Tk()
     root.title("Pycryptor")
@@ -833,4 +845,4 @@ if __name__ == "__main__":
     root.rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
     root.mainloop()
-    logger.debug("The application has been destroyed.")
+    logger.info("The application has been destroyed.")
