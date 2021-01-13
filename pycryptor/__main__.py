@@ -130,10 +130,6 @@ class ListBox(tk.Listbox):
     def items(self):
         return self.getvar("__items") or ()
 
-    def get(self):
-        """Get the items from the ListBox"""
-        return self._items.get()
-
     def add(self, item):
         """Add a unique item in the ListBox"""
         if item not in self.items:
