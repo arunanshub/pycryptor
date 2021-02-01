@@ -5,7 +5,7 @@ from concurrent import futures
 from functools import partial
 
 from pyflocker.ciphers import AES, exc
-from pyflocker.ciphers.backends import Backends, load_backend
+from pyflocker.ciphers.backends import Backends
 from pyflocker.locker import locker
 
 SUCCESS = 1 << 1
