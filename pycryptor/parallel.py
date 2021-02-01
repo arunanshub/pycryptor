@@ -1,10 +1,12 @@
-import os
 import itertools
 import logging
+import os
 from concurrent import futures
 from functools import partial
+
+from pyflocker.ciphers import AES, exc
+from pyflocker.ciphers.backends import Backends, load_backend
 from pyflocker.locker import locker
-from pyflocker.ciphers import exc
 
 SUCCESS = 1 << 1
 FAILURE = 1 << 2
@@ -14,6 +16,11 @@ FILE_EXISTS = 1 << 5
 PERMISSION_ERROR = 1 << 6
 
 logger = logging.getLogger(__name__)
+
+
+# Fix the hanging of ProcessPoolExecutor
+for i in list(Backends):
+    AES.new(True, bytes(32), AES.MODE_GCM, bytes(16), backend=i)
 
 
 def chunkify(iterable, n):
@@ -57,12 +64,16 @@ def files_locker(
         **kwargs,
     )
 
-    # FIXME: A bug is causing the generator to hang if ProcessPoolExecutor
-    # is used. Thread pools works fine.
-    pool = futures.ThreadPoolExecutor(
-        max_workers, thread_name_prefix=thread_name_prefix
-    )
-    logger.debug("Built a threadpool object %s", pool)
+    try:
+        pool = futures.ProcessPoolExecutor(
+            max_workers,
+        )
+        logger.debug("Built a processpool object %s", pool)
+    except ImportError:
+        pool = futures.ThreadPoolExecutor(
+            max_workers, thread_name_prefix=thread_name_prefix
+        )
+        logger.debug("Built a threadpool object %s", pool)
 
     # TODO: Consider this: pool.map(func, files, chunksize=chunksize)
     with pool:

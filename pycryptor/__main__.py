@@ -1,16 +1,16 @@
 #!/usr/bin/python3
-import re
-import json
 import argparse
+import json
+import logging
+import re
 import tkinter as tk
 import webbrowser
-import logging
-
-from collections import deque, defaultdict
-from tkinter import ttk, filedialog, messagebox
+from collections import defaultdict, deque
 from threading import Thread, current_thread
+from tkinter import filedialog, messagebox, ttk
+
 from pyflocker import Backends
-from pyflocker.ciphers import modes
+from pyflocker.ciphers import AES, modes
 
 from . import parallel, start_logging
 
