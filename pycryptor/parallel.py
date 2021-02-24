@@ -39,7 +39,7 @@ def files_locker(
     *files,
     password,
     ext,
-    locking,
+    encrypting,
     backend=None,
     max_workers=None,
     chunksize=16,
@@ -60,7 +60,7 @@ def files_locker(
         password=password,
         backend=backend,
         ext=ext,
-        locking=locking,
+        encrypting=encrypting,
         **kwargs,
     )
 
@@ -77,9 +77,9 @@ def files_locker(
 
     # TODO: Consider this: pool.map(func, files, chunksize=chunksize)
     with pool:
-        logger.debug(f"Entered pool context successfully with {locking=}")
+        logger.debug(f"Entered pool context successfully with {encrypting=}")
 
-        f = partial(_mapper, ext=ext, locking=locking, f=_locker)
+        f = partial(_mapper, ext=ext, encrypting=encrypting, f=_locker)
 
         for chunk in chunkify(files, chunksize):
             temp_res = [pool.submit(f, path=path) for path in chunk]
@@ -88,10 +88,10 @@ def files_locker(
     logger.debug("Finished pool context.")
 
 
-def _mapper(path, ext, locking, f):
+def _mapper(path, ext, encrypting, f):
     if not os.path.exists(path):
         return path, FILE_NOT_FOUND
-    if locking and path.endswith(ext):
+    if encrypting and path.endswith(ext):
         return path, INVALID
 
     try:
@@ -103,7 +103,7 @@ def _mapper(path, ext, locking, f):
     except FileExistsError:
         stat = FILE_EXISTS
     except (TypeError, IsADirectoryError):
-        # header error when locking == False and path.endswith(ext)
+        # header error when encrypting == False and path.endswith(ext)
         stat = INVALID
     except PermissionError:
         stat = PERMISSION_ERROR

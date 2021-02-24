@@ -9,8 +9,8 @@ from collections import defaultdict, deque
 from threading import Thread, current_thread
 from tkinter import filedialog, messagebox, ttk
 
-from pyflocker import Backends
-from pyflocker.ciphers import AES, modes
+from pyflocker.ciphers import modes
+from pyflocker.ciphers.backends import Backends
 
 from . import parallel, start_logging
 
@@ -543,7 +543,7 @@ class EncDecFrame(ttk.Frame):
         waitbox.grab_set()
         return waitbox
 
-    def _submit_task(self, operation, locking):
+    def _submit_task(self, operation, encrypting):
         """Starts the producer/consumer loop, while showing the waitbox.
 
         The producer is launched in a separate thread.
@@ -552,13 +552,13 @@ class EncDecFrame(ttk.Frame):
         logger.info("Starting producer-consumer loop...")
         # submit task to producer and let the consumer do its work
         q = deque()
-        args = (locking, q)
+        args = (encrypting, q)
         waitbox = self._build_waitbox(operation)
         Thread(target=self._producer, args=args).start()
         self._consumer(q, waitbox, operation)
         self.master.wait_window(waitbox)
 
-    def _producer(self, locking, q):
+    def _producer(self, encrypting, q):
         """Produces the filenames and their status and pushes it to the queue.
 
         This function runs in a separate thread, launched from `_submit_task`
@@ -572,7 +572,7 @@ class EncDecFrame(ttk.Frame):
         for fname, fstat in parallel.files_locker(
             *self._listbox.items,
             password=self._entry_pwd.get().encode(),
-            locking=locking,
+            encrypting=encrypting,
             ext=self._extension,
             backend=self._backend,
             aes_mode=self._aes_mode,

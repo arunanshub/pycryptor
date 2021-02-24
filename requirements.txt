@@ -1,1 +1,1 @@
-PyFLocker>=0.2.6
+PyFLocker>=0.3.0
