@@ -576,6 +576,7 @@ class EncDecFrame(ttk.Frame):
             ext=self._extension,
             backend=self._backend,
             aes_mode=self._aes_mode,
+            dklen=self._keylen,
         ):
             q.appendleft((fname, fstat))
         q.appendleft((_SENTINEL, _SENTINEL))
