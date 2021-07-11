@@ -1,14 +1,13 @@
-
 # Pycryptor - The File Vault
 
 Pycryptor is a Python based high performance file encryption software.
 
 ## Features
 
- - Supports multiple AES modes.
- - Supports multiple cryptographic backends.
- - Very fast encryption and decryption of files.
- - GUI based on lightweight Tk. No additional dependencies required.
+- Supports multiple AES modes.
+- Supports multiple cryptographic backends.
+- Very fast encryption and decryption of files.
+- GUI based on lightweight Tk. No additional dependencies required.
 
 ## Pycryptor Preview
 
