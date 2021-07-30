@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import tkinter as tk
+import typing
 import webbrowser
 from collections import defaultdict, deque
 from threading import Thread, current_thread
@@ -16,7 +17,7 @@ from . import parallel, start_logging
 
 logger = logging.getLogger(__loader__.name)
 
-KEY_LENGTHS = (16, 24, 32)
+KEY_LENGTHS: typing.Any = (16, 24, 32)
 
 WAIT_TIME = 200
 

@@ -1,1 +1,2 @@
 PyFLocker>=0.3.0
+colorlog>=5.0.1
