@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pycryptor"
+version = "0.1.0"
+description = "Pure Python High Performance File Encryption Software"
+authors = ["Arunanshu Biswas <mydellpc07@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyFLocker = "^0.3.1"
+colorlog = "^6.6.0"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "^2.19.0"
+
+[tool.poetry.scripts]
+pycryptor = "pycryptor.__main__:main"
+
+[tool.black]
+line-length = 79
+target-verson = "py38"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
