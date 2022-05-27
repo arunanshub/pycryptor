@@ -4,7 +4,7 @@ import colorlog
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-LOGGER_FORMAT = "[{asctime} {log_color}{levelname:<7}{reset}] {message}"
+LOGGER_FORMAT = "[{asctime} {log_color}{levelname:<7}{reset} {filename}:{lineno}] {message}"
 
 
 def start_logging(level=logging.DEBUG, fmt=LOGGER_FORMAT):
@@ -14,12 +14,7 @@ def start_logging(level=logging.DEBUG, fmt=LOGGER_FORMAT):
     """
     logger = logging.getLogger(__name__)
     handler = logging.StreamHandler()
-    handler.setFormatter(
-        colorlog.ColoredFormatter(
-            fmt=fmt,
-            style="{",
-        ),
-    )
+    handler.setFormatter(colorlog.ColoredFormatter(fmt=fmt, style="{"))
     logger.addHandler(handler)
     logger.setLevel(level)
     logger.debug(f"Logging enabled for {__name__}")
