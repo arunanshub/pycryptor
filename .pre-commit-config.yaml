@@ -14,7 +14,7 @@ repos:
         name: Upgrade syntax
 
   - repo: https://github.com/hadialqattan/pycln
-    rev: v1.3.5
+    rev: v2.1.1
     hooks:
       - id: pycln
         args: [--config=pyproject.toml]
