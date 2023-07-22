@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-PyFLocker = "^0.3.1"
+PyFLocker = "^0.4.0"
 colorlog = "^6.7.0"
 
 [tool.poetry.dev-dependencies]
